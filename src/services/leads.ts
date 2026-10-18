@@ -3,7 +3,7 @@ import {getSupabaseConfiguration} from '@/lib/supabase';
 import {getSupabaseBrowserClient} from '@/lib/supabase-browser';
 import type {ServiceResult} from '@/types/domain';
 import type {
-  AssignmentHistoryEntry, AssignmentRules, AvailabilityStatus, EscalationEvent, Lead, LeadService, LeadStatus,
+  AssignmentHistoryEntry, AssignmentRules, AvailabilityStatus, EscalationEvent, Lead, LeadAction, LeadService, LeadStatus,
   RecoveryItem, RecoveryReason, TeamAvailability,
 } from '@/types/leads';
 import {CLOSED_STATUSES} from '@/types/leads';
@@ -43,6 +43,10 @@ export function toEscalation(r: Row): EscalationEvent {
     id: String(r['id']), leadId: String(r['lead_id']), previousOwner: str(r['previous_owner']), newOwner: str(r['new_owner']),
     level: int(r['level']), reason: String(r['reason']), result: r['result'] as EscalationEvent['result'], createdAt: String(r['created_at']),
   };
+}
+
+export function toAction(r: Row): LeadAction {
+  return {id: String(r['id']), leadId: String(r['lead_id']), action: r['action'] as LeadAction['action'], actorId: str(r['actor_id']), note: str(r['note']), createdAt: String(r['created_at'])};
 }
 
 export function toRecoveryItem(r: Row): RecoveryItem {
@@ -109,16 +113,19 @@ export function createLeadService(getClient: () => SupabaseClient): LeadService 
       const {data, error} = await db().from('leads').select('*').eq('workspace_id', workspaceId).eq('id', leadId).maybeSingle();
       if (error) return fail(error, 'The lead could not be loaded.');
       if (!data) return fail(null, 'Lead not found.');
-      const [assignments, escalations] = await Promise.all([
+      const [assignments, escalations, actions] = await Promise.all([
         db().from('lead_assignments').select('*').eq('workspace_id', workspaceId).eq('lead_id', leadId).order('created_at', {ascending: true}),
         db().from('lead_escalations').select('*').eq('workspace_id', workspaceId).eq('lead_id', leadId).order('created_at', {ascending: true}),
+        db().from('lead_actions').select('*').eq('workspace_id', workspaceId).eq('lead_id', leadId).order('created_at', {ascending: false}).limit(50),
       ]);
       if (assignments.error) return fail(assignments.error, 'Assignment history could not be loaded.');
       if (escalations.error) return fail(escalations.error, 'Escalation history could not be loaded.');
+      if (actions.error) return fail(actions.error, 'Activity could not be loaded.');
       return ok({
         lead: toLead(data as Row),
         assignments: (assignments.data ?? []).map((r) => toAssignment(r as Row)),
         escalations: (escalations.data ?? []).map((r) => toEscalation(r as Row)),
+        actions: (actions.data ?? []).map((r) => toAction(r as Row)),
       });
     },
 
@@ -140,8 +147,8 @@ export function createLeadService(getClient: () => SupabaseClient): LeadService 
       return ok({code});
     },
 
-    async recordAction(leadId, action, dedupeKey) {
-      const {data, error} = await db().rpc('record_lead_action', {p_lead: leadId, p_action: action, p_dedupe_key: dedupeKey});
+    async recordAction(leadId, action, dedupeKey, note) {
+      const {data, error} = await db().rpc('record_lead_action', {p_lead: leadId, p_action: action, p_dedupe_key: dedupeKey, p_note: note ?? null});
       if (error) return fail(error, 'The action could not be recorded.');
       return ok({acknowledged: (data as Row | null)?.['acknowledged'] === true});
     },

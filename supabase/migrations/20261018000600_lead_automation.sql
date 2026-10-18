@@ -122,6 +122,7 @@ create table public.lead_actions (
   assignment_id uuid,
   action text not null check (action in ('note_added', 'message_sent', 'call_recorded', 'stage_changed', 'appointment_scheduled')),
   actor_id uuid,
+  note text check (note is null or char_length(note) <= 2000),
   dedupe_key text not null check (char_length(dedupe_key) between 8 and 200),
   created_at timestamptz not null default now(),
   unique (workspace_id, dedupe_key),
@@ -625,7 +626,7 @@ begin
 end;
 $$;
 
-create function public.record_lead_action(p_lead uuid, p_action text, p_dedupe_key text)
+create function public.record_lead_action(p_lead uuid, p_action text, p_dedupe_key text, p_note text default null)
 returns jsonb
 language plpgsql
 security definer
@@ -645,8 +646,11 @@ begin
   if not found or not private.is_workspace_member(v_lead.workspace_id) then
     raise exception 'lead not found' using errcode = '42501';
   end if;
-  insert into public.lead_actions (workspace_id, lead_id, assignment_id, action, actor_id, dedupe_key)
-  values (v_lead.workspace_id, p_lead, v_lead.current_assignment_id, p_action, v_uid, p_dedupe_key)
+  if p_note is not null and char_length(p_note) > 2000 then
+    raise exception 'note is too long (2000 characters maximum)' using errcode = '22023';
+  end if;
+  insert into public.lead_actions (workspace_id, lead_id, assignment_id, action, actor_id, note, dedupe_key)
+  values (v_lead.workspace_id, p_lead, v_lead.current_assignment_id, p_action, v_uid, nullif(btrim(p_note), ''), p_dedupe_key)
   on conflict (workspace_id, dedupe_key) do nothing returning id into v_inserted;
   if v_inserted is null then
     return jsonb_build_object('code', 'already_applied', 'lead_id', p_lead);
@@ -987,14 +991,14 @@ revoke all on function private.leads_lifecycle(), private.leads_auto_assign(), p
 
 revoke all on function public.create_lead(uuid, text, text, text, text, text, text),
   public.capture_external_lead(text, text, text, text, text, text, text),
-  public.acknowledge_lead(uuid, uuid), public.record_lead_action(uuid, text, text),
+  public.acknowledge_lead(uuid, uuid), public.record_lead_action(uuid, text, text, text),
   public.reassign_lead(uuid, uuid, integer, text), public.resolve_recovery(uuid),
   public.get_recovery_queue(uuid, text, uuid, text, text, timestamptz, timestamptz, integer, integer),
   public.get_first_response_stats(uuid, timestamptz, timestamptz), public.set_rule_assignees(uuid, uuid[]),
   public.escalate_overdue_leads(integer), public.claim_notifications(integer),
   public.complete_notification(uuid, boolean, text, text) from public, anon, authenticated;
 grant execute on function public.create_lead(uuid, text, text, text, text, text, text),
-  public.acknowledge_lead(uuid, uuid), public.record_lead_action(uuid, text, text),
+  public.acknowledge_lead(uuid, uuid), public.record_lead_action(uuid, text, text, text),
   public.set_rule_assignees(uuid, uuid[]),
   public.reassign_lead(uuid, uuid, integer, text), public.resolve_recovery(uuid),
   public.get_recovery_queue(uuid, text, uuid, text, text, timestamptz, timestamptz, integer, integer),

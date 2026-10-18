@@ -35,7 +35,7 @@ Realtime: subscription on lead tables with cleanup, plus 15 s polling fallback.
 - **Messaging intake:** only the DB function exists; Member 4's webhook is untested with a real provider.
 - **Provider delivery** (Telegram etc.) is Member 4's. The outbox/worker contract is verified at the database level only.
 - **Public form rate limiter** is in-memory per server instance (the DB adds a coarse 60/min/workspace backstop). It needs `SUPABASE_SERVICE_ROLE_KEY` as a *server-only* env var; without it the form reports "temporarily unavailable" rather than pretending to save. No bot-protection service (CAPTCHA) is integrated: honeypot + minimum fill time only.
-- **Implicit-ack producers** (notes, calls, messages, stage changes, appointments) belong to Members 3/4; no UI here records a fake action.
+- **Implicit acknowledgement:** the lead detail page now has a "Log activity" form (note or call). It persists a real row in `lead_actions` (with an optional note, deduplicated by a per-submission key) and, when the current owner logs it, acknowledges the lead. Messages, stage changes and appointments are still recorded by Members 3/4's modules, which must call `record_lead_action`; nothing calls it for those yet. Verified in the DB suites and service tests; the form itself has not been driven in a browser.
 
 ## Review points for Member 1 (this work touches your objects)
 1. **Replaced functions:** `private.guard_lead_assignment` (adds `current_user in ('authenticated','anon')` so definer automation is exempt from the client `leads.assign` check) and `private.record_lead_assignment` (richer history; ids pre-generated into `leads.current_assignment_id`).

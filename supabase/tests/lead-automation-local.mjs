@@ -154,6 +154,16 @@ ok('a qualifying recorded action acknowledges implicitly', act.rows[0].r.acknowl
   (await q(`select ack_method from lead_assignments where id='${a3.current_assignment_id}'`))[0].ack_method === 'note_added');
 ok('retrying the same action is a no-op', (await as('D', `select public.record_lead_action($1,'note_added',$2) r`, [a3.id, 'dedupe-implicit-1'])).rows[0].r.code === 'already_applied');
 ok('a non-qualifying action is rejected', !!(await attempt('D', `select public.record_lead_action($1,'page_viewed',$2)`, [a3.id, 'dedupe-implicit-2'])).err);
+const noted = await mk('With note');
+await as(Object.keys(U).find((k) => U[k] === noted.assigned_to), `select public.record_lead_action($1,'call_recorded',$2,$3) r`, [noted.id, 'dedupe-note-0001', '  Spoke to the customer  ']);
+ok('an action note is stored trimmed with the actor and linked to the live assignment',
+  (await q(`select note, actor_id, assignment_id from lead_actions where lead_id='${noted.id}'`))[0].note === 'Spoke to the customer' &&
+  (await q(`select assignment_id from lead_actions where lead_id='${noted.id}'`))[0].assignment_id === noted.current_assignment_id);
+ok('an over-long note is rejected and nothing is recorded',
+  !!(await attempt('A', `select public.record_lead_action($1,'note_added',$2,$3)`, [noted.id, 'dedupe-note-0002', 'x'.repeat(2001)])).err &&
+  (await q(`select count(*)::int c from lead_actions where lead_id='${noted.id}'`))[0].c === 1);
+ok('clients cannot write or edit recorded actions directly',
+  !!(await attempt('A', `insert into lead_actions (workspace_id, lead_id, action, dedupe_key) values ($1,$2,'note_added','forged-direct-1')`, [wsA, noted.id])).err);
 const a4 = await mk('Other action'); // -> B (cap fine)
 await as('F', `select public.record_lead_action($1,'call_recorded',$2)`, [a4.id, 'dedupe-implicit-3']);
 ok('an action by a non-assignee does not acknowledge', (await lead(a4.id)).acknowledged_at === null);

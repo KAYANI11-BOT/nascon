@@ -108,7 +108,7 @@ export function useAcknowledge(ws: string | null) {
 }
 export function useRecordAction(ws: string | null) {
   const refresh = useRefresh(ws);
-  return useMutation({mutationFn: (v: {leadId: string; action: QualifyingAction; dedupeKey: string}) => unwrap(leadService.recordAction(v.leadId, v.action, v.dedupeKey)), onSuccess: refresh});
+  return useMutation({mutationFn: (v: {leadId: string; action: QualifyingAction; dedupeKey: string; note?: string}) => unwrap(leadService.recordAction(v.leadId, v.action, v.dedupeKey, v.note)), onSuccess: refresh});
 }
 export function useReassign(ws: string | null) {
   const refresh = useRefresh(ws);

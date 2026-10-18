@@ -87,6 +87,29 @@ describe('lead service', () => {
     expect(stale.error).toMatch(/changed while you were working/);
   });
 
+  it('records an activity with its note and reports whether it acknowledged the lead', async () => {
+    const {client, calls} = fakeClient({'rpc:record_lead_action': {data: {code: 'ok', acknowledged: true}}});
+    const r = await createLeadService(() => client).recordAction('l1', 'note_added', 'dedupe-key-0001', 'Called back');
+    expect(r.data).toEqual({acknowledged: true});
+    expect(calls[0]!.steps[0]![1][0]).toEqual({p_lead: 'l1', p_action: 'note_added', p_dedupe_key: 'dedupe-key-0001', p_note: 'Called back'});
+    const failed = await createLeadService(() => fakeClient({'rpc:record_lead_action': {error: {code: '22023', message: 'note is too long'}}}).client).recordAction('l1', 'call_recorded', 'dedupe-key-0002');
+    expect(failed.data).toBeNull();
+  });
+
+  it('loads a lead with assignments, escalations and recorded activity', async () => {
+    const {client, calls} = fakeClient({
+      'from:leads': {data: leadRow},
+      'from:lead_assignments': {data: [{id: 'a1', lead_id: 'l1', assigned_to: 'u1', created_at: 't', escalation_level: 0}]},
+      'from:lead_escalations': {data: [{id: 'e1', lead_id: 'l1', level: 1, reason: 'ack_timeout', result: 'employee', created_at: 't'}]},
+      'from:lead_actions': {data: [{id: 'x1', lead_id: 'l1', action: 'note_added', actor_id: 'u1', note: 'hi', created_at: 't'}]},
+    });
+    const r = await createLeadService(() => client).getLead('w1', 'l1');
+    expect(r.data?.actions).toEqual([{id: 'x1', leadId: 'l1', action: 'note_added', actorId: 'u1', note: 'hi', createdAt: 't'}]);
+    expect(r.data?.assignments).toHaveLength(1);
+    expect(r.data?.escalations[0]).toMatchObject({level: 1, result: 'employee'});
+    expect(calls.filter((c) => c.target === 'from:lead_actions')[0]!.steps).toContainEqual(['eq', ['workspace_id', 'w1']]);
+  });
+
   it('reads recovery rows with total_count from the first row', async () => {
     const row = {lead_id: 'l1', full_name: 'X', source: null, assigned_to: 'u1', status: 'new', created_at: 't', acknowledged: false, escalation_level: 0,
       escalations_since_review: 0, last_action_at: null, acknowledgement_due_at: 't', needs_manager_review: false, reasons: ['unacknowledged_overdue'], total_count: 7};
