@@ -5,15 +5,32 @@ export interface TeamMember { id:string; name:string; email:string; role:Role; i
 export interface ServiceResult<T> { data:T|null; error:string|null; }
 export interface Workspace { id:string; name:string; industry:string; timezone:string; }
 export interface EntityService { list(workspaceId:string):Promise<ServiceResult<RecordItem[]>>; create(workspaceId:string,input:Omit<RecordItem,'id'>):Promise<ServiceResult<RecordItem>>; update(workspaceId:string,id:string,input:Partial<RecordItem>):Promise<ServiceResult<RecordItem>>; }
-// CRM rows use snake_case so they can map to future workspace-scoped PostgreSQL tables; field names await schema confirmation.
-export interface WorkspaceRow { id:string; workspace_id:string; created_at:string; updated_at:string; }
-export interface Contact extends WorkspaceRow { name:string; email:string|null; phone:string|null; company_id:string|null; status:string; source:string|null; owner_id:string|null; }
-export interface Company extends WorkspaceRow { name:string; email:string|null; phone:string|null; website:string|null; industry:string|null; status:string; owner_id:string|null; }
-// value is null when the server withholds it from a caller without permission to view opportunity values.
-export interface Opportunity extends WorkspaceRow { title:string; contact_id:string|null; company_id:string|null; value:number|null; currency:string; pipeline_id:string|null; stage:string; owner_id:string|null; status:string; expected_close_date:string|null; }
-export type CrmCreateInput<T extends WorkspaceRow> = Omit<T,keyof WorkspaceRow>;
-export type CrmUpdateInput<T extends WorkspaceRow> = Partial<CrmCreateInput<T>>;
-export interface CrmService<T extends WorkspaceRow> { list(workspaceId:string):Promise<ServiceResult<T[]>>; getById(workspaceId:string,id:string):Promise<ServiceResult<T>>; create(workspaceId:string,input:CrmCreateInput<T>):Promise<ServiceResult<T>>; update(workspaceId:string,id:string,input:CrmUpdateInput<T>):Promise<ServiceResult<T>>; delete(workspaceId:string,id:string):Promise<ServiceResult<null>>; }
+// --- CRM contracts: rows come from supabase/migrations/20261018000200_crm_core.sql via ./database ---
+import type { CompanyRow, ContactRow, Database, OpportunityRow, PipelineRow, PipelineStageRow } from './database';
+type CrmTables = Database['public']['Tables'];
+// Callers never set ids, workspace scope, timestamps or authorship; the server boundary does.
+type CrmInsert<K extends keyof CrmTables> = Omit<CrmTables[K]['Insert'],'id'|'workspace_id'|'created_at'|'updated_at'|'created_by'>;
+export type Contact = ContactRow;
+export type Company = CompanyRow;
+export type Pipeline = PipelineRow;
+export type PipelineStage = PipelineStageRow;
+export type StageType = PipelineStageRow['stage_type'];
+// amount is null when the server withholds it from a caller without permission to view opportunity values.
+export type Opportunity = Omit<OpportunityRow,'amount'> & { amount:number|null; custom_fields?:OpportunityCustomValues };
+export type ContactInput = CrmInsert<'contacts'>;
+export type CompanyInput = CrmInsert<'companies'>;
+export type PipelineInput = CrmInsert<'pipelines'>;
+export type PipelineStageInput = CrmInsert<'pipeline_stages'>;
+export type OpportunityInput = CrmInsert<'opportunities'> & { custom_fields?:OpportunityCustomValues };
+export interface CrmService<Row,Input> { list(workspaceId:string):Promise<ServiceResult<Row[]>>; getById(workspaceId:string,id:string):Promise<ServiceResult<Row>>; create(workspaceId:string,input:Input):Promise<ServiceResult<Row>>; update(workspaceId:string,id:string,input:Partial<Input>):Promise<ServiceResult<Row>>; delete(workspaceId:string,id:string):Promise<ServiceResult<null>>; }
+// Per-pipeline custom fields (problem statement requirement). NOT in crm_core.sql yet: needs a pipeline_custom_fields
+// table and an opportunities.custom_fields jsonb column before these can be persisted.
+export type CustomFieldType = 'text'|'number'|'date'|'select';
+export interface PipelineCustomField { id:string; workspace_id:string; pipeline_id:string; key:string; label:string; field_type:CustomFieldType; options:string[]|null; required:boolean; position:number; created_at:string; updated_at:string; }
+export type PipelineCustomFieldInput = Omit<PipelineCustomField,'id'|'workspace_id'|'created_at'|'updated_at'>;
+export type OpportunityCustomValues = Record<string,string|number|null>;
+// UI configuration shape for one pipeline, used by demo session state and by future service-backed loaders.
+export interface PipelineConfig { id:string; name:string; isDefault:boolean; stages:{ id:string; name:string; type:StageType }[]; fields:{ id:string; key:string; label:string; type:CustomFieldType; options?:string[] }[]; }
 
 // --- Authentication and workspace contracts (shared by all feature modules) ---
 export type { PermissionKey } from './database';

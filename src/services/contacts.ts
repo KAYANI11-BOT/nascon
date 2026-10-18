@@ -1,3 +1,3 @@
-import type {Contact} from '@/types/domain';
+import type {Contact,ContactInput} from '@/types/domain';
 import {createUnavailableCrmService} from './crm';
-export const contactService=createUnavailableCrmService<Contact>('contact');
+export const contactService=createUnavailableCrmService<Contact,ContactInput>('contact');
