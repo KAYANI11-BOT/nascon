@@ -1,8 +1,8 @@
 # LeadGuard foundation
 
-- [ ] Verify the user's existing external Supabase connection, Auth and PostgreSQL access. **Blocked:** no connection configuration or public Supabase environment variables available in this project; do not provision a replacement.
-- [ ] Retrieve the full official requirement checklist for exact handoff IDs.
-- [ ] Create workspace-isolated schema, grants, RLS and safe Owner onboarding after connection verification.
-- [ ] Implement signup, login, logout, persistent sessions and profiles.
-- [ ] Build the professional application shell and real-data CRM, leads, pipeline, team, recovery and supported settings.
-- [ ] Add local setup instructions, environment example and Claude Code handoff; verify working flows and report deferred requirements.
+- [ ] Build application shell, design system and all 24 requested frontend screens.
+- [ ] Implement demo-only search, filters, validated forms, dialogs, tabs, dashboard customization and Kanban movement.
+- [ ] Prepare typed service boundaries and configuration-required handling without connecting any backend.
+- [ ] Generate workspace-isolated schema, grants, RLS and onboarding SQL for manual review only.
+- [ ] Add environment example, local setup and Claude Code handoff documentation.
+- [ ] Verify desktop/mobile screens and central demo interactions; report backend work as deferred.

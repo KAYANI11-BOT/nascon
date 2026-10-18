@@ -10,33 +10,347 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppointmentsRouteImport } from './routes/appointments'
+import { Route as AssignmentRulesRouteImport } from './routes/assignment-rules'
+import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AvailabilityRouteImport } from './routes/availability'
+import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as ContactsRouteImport } from './routes/contacts'
+import { Route as ConversationsRouteImport } from './routes/conversations'
+import { Route as CustomFieldsRouteImport } from './routes/custom-fields'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as OpportunitiesRouteImport } from './routes/opportunities'
+import { Route as PaymentsRouteImport } from './routes/payments'
+import { Route as PermissionsRouteImport } from './routes/permissions'
+import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as PipelineSettingsRouteImport } from './routes/pipeline-settings'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RecoveryRouteImport } from './routes/recovery'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TeamRouteImport } from './routes/team'
+import { Route as ContactsIdRouteImport } from './routes/contacts.$id'
+import { Route as LeadsIdRouteImport } from './routes/leads.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppointmentsRoute = AppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssignmentRulesRoute = AssignmentRulesRouteImport.update({
+  id: '/assignment-rules',
+  path: '/assignment-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AvailabilityRoute = AvailabilityRouteImport.update({
+  id: '/availability',
+  path: '/availability',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompaniesRoute = CompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactsRoute = ContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConversationsRoute = ConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomFieldsRoute = CustomFieldsRouteImport.update({
+  id: '/custom-fields',
+  path: '/custom-fields',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpportunitiesRoute = OpportunitiesRouteImport.update({
+  id: '/opportunities',
+  path: '/opportunities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PermissionsRoute = PermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipelineSettingsRoute = PipelineSettingsRouteImport.update({
+  id: '/pipeline-settings',
+  path: '/pipeline-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecoveryRoute = RecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactsIdRoute = ContactsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ContactsRoute,
+} as any)
+const LeadsIdRoute = LeadsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => LeadsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/appointments': typeof AppointmentsRoute
+  '/assignment-rules': typeof AssignmentRulesRoute
+  '/audit': typeof AuditRoute
+  '/availability': typeof AvailabilityRoute
+  '/companies': typeof CompaniesRoute
+  '/contacts': typeof ContactsRouteWithChildren
+  '/conversations': typeof ConversationsRoute
+  '/custom-fields': typeof CustomFieldsRoute
+  '/integrations': typeof IntegrationsRoute
+  '/leads': typeof LeadsRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/opportunities': typeof OpportunitiesRoute
+  '/payments': typeof PaymentsRoute
+  '/permissions': typeof PermissionsRoute
+  '/pipeline': typeof PipelineRoute
+  '/pipeline-settings': typeof PipelineSettingsRoute
+  '/profile': typeof ProfileRoute
+  '/recovery': typeof RecoveryRoute
+  '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
+  '/team': typeof TeamRoute
+  '/contacts/$id': typeof ContactsIdRoute
+  '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/appointments': typeof AppointmentsRoute
+  '/assignment-rules': typeof AssignmentRulesRoute
+  '/audit': typeof AuditRoute
+  '/availability': typeof AvailabilityRoute
+  '/companies': typeof CompaniesRoute
+  '/contacts': typeof ContactsRouteWithChildren
+  '/conversations': typeof ConversationsRoute
+  '/custom-fields': typeof CustomFieldsRoute
+  '/integrations': typeof IntegrationsRoute
+  '/leads': typeof LeadsRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/opportunities': typeof OpportunitiesRoute
+  '/payments': typeof PaymentsRoute
+  '/permissions': typeof PermissionsRoute
+  '/pipeline': typeof PipelineRoute
+  '/pipeline-settings': typeof PipelineSettingsRoute
+  '/profile': typeof ProfileRoute
+  '/recovery': typeof RecoveryRoute
+  '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
+  '/team': typeof TeamRoute
+  '/contacts/$id': typeof ContactsIdRoute
+  '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/appointments': typeof AppointmentsRoute
+  '/assignment-rules': typeof AssignmentRulesRoute
+  '/audit': typeof AuditRoute
+  '/availability': typeof AvailabilityRoute
+  '/companies': typeof CompaniesRoute
+  '/contacts': typeof ContactsRouteWithChildren
+  '/conversations': typeof ConversationsRoute
+  '/custom-fields': typeof CustomFieldsRoute
+  '/integrations': typeof IntegrationsRoute
+  '/leads': typeof LeadsRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/opportunities': typeof OpportunitiesRoute
+  '/payments': typeof PaymentsRoute
+  '/permissions': typeof PermissionsRoute
+  '/pipeline': typeof PipelineRoute
+  '/pipeline-settings': typeof PipelineSettingsRoute
+  '/profile': typeof ProfileRoute
+  '/recovery': typeof RecoveryRoute
+  '/settings': typeof SettingsRoute
+  '/signup': typeof SignupRoute
+  '/team': typeof TeamRoute
+  '/contacts/$id': typeof ContactsIdRoute
+  '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/appointments'
+    | '/assignment-rules'
+    | '/audit'
+    | '/availability'
+    | '/companies'
+    | '/contacts'
+    | '/conversations'
+    | '/custom-fields'
+    | '/integrations'
+    | '/leads'
+    | '/login'
+    | '/onboarding'
+    | '/opportunities'
+    | '/payments'
+    | '/permissions'
+    | '/pipeline'
+    | '/pipeline-settings'
+    | '/profile'
+    | '/recovery'
+    | '/settings'
+    | '/signup'
+    | '/team'
+    | '/contacts/$id'
+    | '/leads/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/appointments'
+    | '/assignment-rules'
+    | '/audit'
+    | '/availability'
+    | '/companies'
+    | '/contacts'
+    | '/conversations'
+    | '/custom-fields'
+    | '/integrations'
+    | '/leads'
+    | '/login'
+    | '/onboarding'
+    | '/opportunities'
+    | '/payments'
+    | '/permissions'
+    | '/pipeline'
+    | '/pipeline-settings'
+    | '/profile'
+    | '/recovery'
+    | '/settings'
+    | '/signup'
+    | '/team'
+    | '/contacts/$id'
+    | '/leads/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/appointments'
+    | '/assignment-rules'
+    | '/audit'
+    | '/availability'
+    | '/companies'
+    | '/contacts'
+    | '/conversations'
+    | '/custom-fields'
+    | '/integrations'
+    | '/leads'
+    | '/login'
+    | '/onboarding'
+    | '/opportunities'
+    | '/payments'
+    | '/permissions'
+    | '/pipeline'
+    | '/pipeline-settings'
+    | '/profile'
+    | '/recovery'
+    | '/settings'
+    | '/signup'
+    | '/team'
+    | '/contacts/$id'
+    | '/leads/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppointmentsRoute: typeof AppointmentsRoute
+  AssignmentRulesRoute: typeof AssignmentRulesRoute
+  AuditRoute: typeof AuditRoute
+  AvailabilityRoute: typeof AvailabilityRoute
+  CompaniesRoute: typeof CompaniesRoute
+  ContactsRoute: typeof ContactsRouteWithChildren
+  ConversationsRoute: typeof ConversationsRoute
+  CustomFieldsRoute: typeof CustomFieldsRoute
+  IntegrationsRoute: typeof IntegrationsRoute
+  LeadsRoute: typeof LeadsRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  OpportunitiesRoute: typeof OpportunitiesRoute
+  PaymentsRoute: typeof PaymentsRoute
+  PermissionsRoute: typeof PermissionsRoute
+  PipelineRoute: typeof PipelineRoute
+  PipelineSettingsRoute: typeof PipelineSettingsRoute
+  ProfileRoute: typeof ProfileRoute
+  RecoveryRoute: typeof RecoveryRoute
+  SettingsRoute: typeof SettingsRoute
+  SignupRoute: typeof SignupRoute
+  TeamRoute: typeof TeamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +362,223 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/appointments': {
+      id: '/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof AppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assignment-rules': {
+      id: '/assignment-rules'
+      path: '/assignment-rules'
+      fullPath: '/assignment-rules'
+      preLoaderRoute: typeof AssignmentRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/availability': {
+      id: '/availability'
+      path: '/availability'
+      fullPath: '/availability'
+      preLoaderRoute: typeof AvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies': {
+      id: '/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacts': {
+      id: '/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conversations': {
+      id: '/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof ConversationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/custom-fields': {
+      id: '/custom-fields'
+      path: '/custom-fields'
+      fullPath: '/custom-fields'
+      preLoaderRoute: typeof CustomFieldsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/opportunities': {
+      id: '/opportunities'
+      path: '/opportunities'
+      fullPath: '/opportunities'
+      preLoaderRoute: typeof OpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/permissions': {
+      id: '/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof PermissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pipeline-settings': {
+      id: '/pipeline-settings'
+      path: '/pipeline-settings'
+      fullPath: '/pipeline-settings'
+      preLoaderRoute: typeof PipelineSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recovery': {
+      id: '/recovery'
+      path: '/recovery'
+      fullPath: '/recovery'
+      preLoaderRoute: typeof RecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacts/$id': {
+      id: '/contacts/$id'
+      path: '/$id'
+      fullPath: '/contacts/$id'
+      preLoaderRoute: typeof ContactsIdRouteImport
+      parentRoute: typeof ContactsRoute
+    }
+    '/leads/$id': {
+      id: '/leads/$id'
+      path: '/$id'
+      fullPath: '/leads/$id'
+      preLoaderRoute: typeof LeadsIdRouteImport
+      parentRoute: typeof LeadsRoute
+    }
   }
 }
 
+interface ContactsRouteChildren {
+  ContactsIdRoute: typeof ContactsIdRoute
+}
+
+const ContactsRouteChildren: ContactsRouteChildren = {
+  ContactsIdRoute: ContactsIdRoute,
+}
+
+const ContactsRouteWithChildren = ContactsRoute._addFileChildren(
+  ContactsRouteChildren,
+)
+
+interface LeadsRouteChildren {
+  LeadsIdRoute: typeof LeadsIdRoute
+}
+
+const LeadsRouteChildren: LeadsRouteChildren = {
+  LeadsIdRoute: LeadsIdRoute,
+}
+
+const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppointmentsRoute: AppointmentsRoute,
+  AssignmentRulesRoute: AssignmentRulesRoute,
+  AuditRoute: AuditRoute,
+  AvailabilityRoute: AvailabilityRoute,
+  CompaniesRoute: CompaniesRoute,
+  ContactsRoute: ContactsRouteWithChildren,
+  ConversationsRoute: ConversationsRoute,
+  CustomFieldsRoute: CustomFieldsRoute,
+  IntegrationsRoute: IntegrationsRoute,
+  LeadsRoute: LeadsRouteWithChildren,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  OpportunitiesRoute: OpportunitiesRoute,
+  PaymentsRoute: PaymentsRoute,
+  PermissionsRoute: PermissionsRoute,
+  PipelineRoute: PipelineRoute,
+  PipelineSettingsRoute: PipelineSettingsRoute,
+  ProfileRoute: ProfileRoute,
+  RecoveryRoute: RecoveryRoute,
+  SettingsRoute: SettingsRoute,
+  SignupRoute: SignupRoute,
+  TeamRoute: TeamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
