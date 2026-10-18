@@ -1,4 +1,6 @@
-import type {Opportunity,OpportunityInput} from '@/types/domain';
-import {createUnavailableCrmService} from './crm';
+import type { Opportunity, OpportunityInput } from "@/types/domain";
+import { createLiveCrmService } from "./crm-live-adapter";
 // Value visibility must be enforced by an authenticated TanStack server boundary that returns amount:null for unauthorised roles.
-export const opportunityService=createUnavailableCrmService<Opportunity,OpportunityInput>('opportunity');
+export const opportunityService = createLiveCrmService<Opportunity, OpportunityInput>(
+  "opportunities",
+);
