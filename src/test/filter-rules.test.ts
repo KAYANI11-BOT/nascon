@@ -140,6 +140,21 @@ describe("filter validation", () => {
 describe("saved filter list operations", () => {
   const def = all(cond({ kind: "stage", value: "Proposal" }), cond({ kind: "owner", value: "Alex Morgan" }), cond({ kind: "date", dateField: "closeDate", operator: "after", value: "2026-11-01" }));
 
+  it('keeps saved stage criteria attached to IDs after rename and rejects a reused label', () => {
+    const saved = createSavedFilter([], 'Stable', {pipelineId:'sales',conditions:[cond({kind:'stage',value:'Proposal'})]}, pipelines, 'sf-stable');
+    if (!saved.ok) throw new Error(saved.error);
+    const filter = saved.value[0]!;
+    expect(filter.conditions[0]).toMatchObject({stageIds:['s2']});
+    const renamed = pipelines.map(p=>({...p,stages:p.stages.map(s=>s.id==='s2'?{...s,name:'Review'}:s)}));
+    expect(validateDefinition(filter,renamed)).toEqual([]);
+    expect(matchesFilter(filter,opp({id:'original',stageId:'s2',stage:'Review'}))).toBe(true);
+    expect(matchesFilter(filter,opp({id:'reused-name',stageId:'s-new',stage:'Proposal'}))).toBe(false);
+    const deleted = renamed.map(p=>({...p,stages:p.stages.filter(s=>s.id!=='s2')}));
+    expect(validateDefinition(filter,deleted)).not.toEqual([]);
+    expect(activeConditions(filter,deleted)).toHaveLength(1);
+    expect(matchesFilter({...filter,conditions:activeConditions(filter,deleted)},opp({id:'unrelated',stageId:'s-new',stage:'Proposal'}))).toBe(false);
+  });
+
   it("creates, edits and deletes a saved filter", () => {
     const created = createSavedFilter([], "  Hot proposals ", def, pipelines, "sf1");
     if (!created.ok) throw new Error(created.error);

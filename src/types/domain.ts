@@ -41,10 +41,10 @@ export interface PipelineConfig { id:string; name:string; isDefault:boolean; sta
 export type FilterDateField = 'created'|'closeDate';
 export type FilterDateOperator = 'before'|'after'|'on'|'between';
 export type FilterCustomOperator = 'equals'|'contains'|'gt'|'lt';
-// Conditions are combined with AND. Stage conditions store the stage name as the UI knows it; a persisted version
-// should reference stage_id so renaming a stage does not break a saved filter.
+// Conditions are combined with AND. New stage conditions capture stable IDs; value is a display label.
+// Legacy name-based conditions are upgraded when saved against the current pipeline configuration.
 export type FilterCondition =
-  | { id:string; kind:'stage'; value:string }
+  | { id:string; kind:'stage'; value:string; stageIds?:string[] }
   | { id:string; kind:'owner'; value:string }
   | { id:string; kind:'date'; dateField:FilterDateField; operator:FilterDateOperator; value:string; valueTo?:string }
   | { id:string; kind:'custom'; pipelineId:string; fieldKey:string; operator:FilterCustomOperator; value:string };

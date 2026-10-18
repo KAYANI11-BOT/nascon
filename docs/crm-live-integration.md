@@ -1,5 +1,90 @@
 # Member 3 CRM live integration handoff
 
+## Addendum continuation (18 October 2026)
+
+This continuation reused the merged implementation at `d9339e4`. Member 1 is working
+on schema/permission contracts in parallel. Latest fetched `origin/main` still has no
+new contract changes; no shared migrations, auth code or permission registry were changed.
+
+### Already implemented before this continuation
+
+Authenticated core CRM CRUD, ID-based Customer 360 queries, basic pipeline writes,
+six source-backed dashboard metrics, three drilldowns, scoped query caches, and
+device-only dashboard preferences. Saved Filters and custom fields had demo implementations.
+
+### Newly implemented
+
+- A shared contact/opportunity activity timeline reads Member 1's `audit_logs` only.
+  History is accessible from both the Opportunities list and Pipeline cards. Actor
+  names are resolved by authoritative IDs under profile RLS; unavailable actors keep
+  their ID rather than being attributed to another employee. Original timestamps are
+  displayed with the workspace timezone. Audit snapshots are never selected or returned.
+- Newly saved stage conditions capture stable stage IDs, including legacy definitions
+  saved through the existing builder. Existing demo records expose their stage ID.
+  Renaming a stage preserves matching records; reusing the old label does not retarget
+  a filter. Deleted stable stages fail closed instead of dropping the condition and
+  accidentally showing every record. This does not implement remote Saved Filter persistence.
+- Mutation settlement refreshes CRM and dashboard caches after both success and error,
+  including an ambiguous lost HTTP response. In-flight reads are cancelled before mutation.
+  Refresh uses the original mutation workspace even after a workspace switch.
+- Existing live edit/delete/move controls send the loaded `updated_at`; the database
+  write includes that equality check so a concurrent edit is rejected atomically.
+  This optional compatibility guard does not replace the missing atomic stage RPCs.
+- List/board pages clamp pagination after deletions. Reference lists poll, vanished
+  selected pipelines are reset, failed board queries hide stale cards, and refreshes
+  label previously loaded values while updates are in flight.
+- Currency displays retain fractional amounts. Stage totals add integer minor units
+  for the approved numeric(14,2) schema, keep currencies separate and fail rather than
+  display an aggregate exceeding safe numeric precision.
+
+Important files changed: existing `crm-live.server.ts`, `crm-live.functions.ts`,
+`crm-live.contracts.ts`, `crm-dashboard.server.ts`, `live-queries.ts`, `live-crm-page.tsx`,
+`live-pipeline.tsx`, `live-contact-detail.tsx`, `live-dashboard.tsx`, `filter-rules.ts`,
+`filter-builder.tsx`, `opportunity-data.ts`, and the small stage condition type in
+`src/types/domain.ts`. The new reusable `live-activity.tsx` replaces duplicated timeline
+rendering; it does not introduce another audit storage system.
+
+### Verification and remaining dependencies
+
+- Full unit/component suite: **162 passed across 18 files** (14 new tests in this continuation).
+- Local RLS/onboarding suite: **50 passed**. These are local PGlite results, not remote migration verification.
+- Production build passed; the existing configuration advisory/large-chunk warning remains.
+- Current Chrome headless smoke script passed **14 checks with zero page errors**:
+  demo Saved Filter interactions, demo route checks and backend-mode signed-out redirects.
+  It does not verify authenticated live timeline or database operations.
+- TypeScript has **zero new errors**, with the same six existing settings/shell errors.
+- Changed live modules pass full ESLint. Compact legacy demo/filter/type files pass
+  functional lint with their existing formatting rule excluded; they were not reformatted wholesale.
+- New regression coverage verifies opportunity audit scope, actor/time metadata, snapshot
+  exclusion, stage rename/old-name reuse, currency precision, optimistic write conflicts,
+  and original-workspace cache invalidation after failed writes.
+- Authenticated remote persistence and new opportunity timeline behavior against a live
+  signed-in Supabase session remain **UNVERIFIED**.
+
+Read-only zero-row remote checks again returned `404/PGRST205` for `notes`,
+`saved_filters`, `dashboard_preferences`, `pipeline_custom_fields`,
+`pipeline_stage_required_fields`, `appointments`, and `payments`. The guessed preference
+table name is only a readiness probe, not an approved schema contract. Permission catalog
+access returned `401/42501`; no remote permission contents or migration history were verified.
+
+**Blocked by Member 1:** approved notes schema/authorization, account-level preference
+storage, custom-field/Saved Filter tables and contracts, atomic stage operations,
+and final monetary/export permission keys. CSV export remains unimplemented in live mode:
+entity manage permission was not repurposed as export permission. The existing Owner-only
+monetary fallback remains provisional, not final configurable field-level authorization.
+Direct opportunity table access and direct audit snapshot access still need database-level
+protection in Member 1's approved implementation. No competing permission keys were invented.
+
+**Blocked by Member 4:** authoritative messaging, calendar and confirmed payment/refund
+records and ID relationships. Those Customer 360 sections and two dashboard metrics stay
+explicitly unavailable rather than using samples.
+
+**Still incomplete:** after those dependencies are published, wire notes, private persistent
+Saved Filters, custom-field validation, account preference sync, authorized CSV exports,
+atomic stage changes and complete integration history. Then run authenticated remote CRUD,
+reload-persistence and cross-role/RLS acceptance tests. Nothing in this continuation was
+committed, pushed, merged or applied to the shared database.
+
 ## Scope and Git
 
 Implemented on `feature/crm-live-integration`, based on `origin/main` at

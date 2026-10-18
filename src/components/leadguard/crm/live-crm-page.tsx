@@ -1,3 +1,4 @@
+import { OpportunityHistoryDialog } from "./live-activity";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -156,6 +157,7 @@ export function LiveRecordEditor({
         entity,
         action: record ? "update" : "create",
         ...(record ? { id: record.id } : {}),
+        ...(record?.updated_at ? { expectedUpdatedAt: record.updated_at } : {}),
         values,
       });
       onClose();
@@ -335,6 +337,7 @@ export function LiveCrmPage({
   const [closeTo, setCloseTo] = useState("");
   const [relatedCompany, setRelatedCompany] = useState<string | null>(null);
   const [editor, setEditor] = useState<LiveRow | "new" | null>(null);
+  const [history, setHistory] = useState<LiveRow | null>(null);
   const [deleting, setDeleting] = useState<LiveRow | null>(null);
   const result = useLiveRecords({
     entity,
@@ -354,8 +357,13 @@ export function LiveCrmPage({
     setPage(1);
     setEditor(null);
     setDeleting(null);
+    setHistory(null);
     setRelatedCompany(null);
   }, [mode.workspaceId]);
+  useEffect(() => {
+    if (result.isSuccess)
+      setPage((p) => Math.min(p, Math.max(1, Math.ceil(result.data.total / 20))));
+  }, [result.isSuccess, result.data?.total]);
   const permission = entity === "pipeline_stages" ? "pipelines.manage" : `${entity}.manage`;
   const canWrite = mode.auth.permissions.some((p) => p === permission);
   const canDelete = canWrite && mode.auth.can("records.delete") && entity !== "pipeline_stages";
@@ -379,6 +387,9 @@ export function LiveCrmPage({
         </Button>
       </PageHeading>
       {refs.error && <QueryError error={refs.error} retry={() => void refs.refetch()} />}
+      {(result.isFetching || refs.isFetching) && (
+        <p role="status">Refreshing workspace records; displayed data is from the previous load.</p>
+      )}
       {refs.data?.truncated && (
         <p role="status">
           Some reference options are omitted (1,000 record limit). Refine data before linking an
@@ -556,6 +567,11 @@ export function LiveCrmPage({
                       <td>{names(r.owner_id, refs.data?.members ?? [])}</td>
                       <td>
                         <div className="flex gap-2">
+                          {entity === "opportunities" && (
+                            <Button variant="outline" onClick={() => setHistory(r)}>
+                              History
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             disabled={!canWrite || !refs.data}
@@ -607,6 +623,13 @@ export function LiveCrmPage({
           {...(editor === "new" ? {} : { record: editor })}
           refs={refs.data}
           onClose={() => setEditor(null)}
+        />
+      )}
+      {history && (
+        <OpportunityHistoryDialog
+          id={history.id}
+          name={history.name ?? "Opportunity"}
+          onClose={() => setHistory(null)}
         />
       )}
       {deleting && (

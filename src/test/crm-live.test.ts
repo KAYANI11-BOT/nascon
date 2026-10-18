@@ -8,7 +8,7 @@ import {
   parseCrmValues,
   safeCrmSearch,
 } from "@/services/crm-live.contracts";
-import { getCrm, listCrm, mutateCrm } from "@/services/crm-live.server";
+import { getCrm, listCrm, mutateCrm, readCrmActivity } from "@/services/crm-live.server";
 import { groupPipeline, loadCrmDashboard, workspaceDay } from "@/services/crm-dashboard.server";
 
 const ws = "00000000-0000-4000-8000-000000000001";
@@ -292,6 +292,29 @@ describe("CRM server persistence boundary (fake database)", () => {
   });
 });
 describe("operational metrics", () => {
+  it("sums fractional cents exactly without mixing currencies", () => {
+    const rows = groupPipeline(
+      [
+        { stage_id: "s", currency: "USD", amount: "0.10" },
+        { stage_id: "s", currency: "USD", amount: "0.20" },
+        { stage_id: "s", currency: "EUR", amount: "0.10" },
+      ],
+      [],
+      [],
+    );
+    expect(rows.map((r) => [r.currency, r.amount])).toEqual([
+      ["USD", 0.3],
+      ["EUR", 0.1],
+    ]);
+  });
+  it("rejects unsafe or malformed aggregates rather than displaying an inaccurate total", () => {
+    expect(() =>
+      groupPipeline([{ stage_id: "s", currency: "USD", amount: "90071992547409.92" }], [], []),
+    ).toThrow("exact database aggregate");
+    expect(() =>
+      groupPipeline([{ stage_id: "s", currency: "USD", amount: "NaN" }], [], []),
+    ).toThrow("Invalid monetary");
+  });
   it("keeps stage currencies separate and converts numeric strings", () => {
     const rows = groupPipeline(
       [
@@ -369,5 +392,106 @@ describe("operational metrics", () => {
     const f = fake([{ data: [], count: 1001, error: null }]);
     const d = await loadCrmDashboard({ ...f, auth: auth("Admin") });
     expect(d.newLeads.available).toBe(false);
+  });
+});
+describe("CRM activity metadata", () => {
+  it("loads opportunity history with correct actor identities and deterministic timestamps", async () => {
+    const f = fake([
+      { data: { id: other, workspace_id: ws }, error: null },
+      {
+        data: [
+          {
+            id: 2,
+            actor_id: user,
+            action: "update",
+            created_at: "2026-10-18T10:00:00Z",
+            old_data: { amount: 999 },
+          },
+        ],
+        error: null,
+        count: 1,
+      },
+      { data: [{ id: user, full_name: "Actual actor" }], error: null },
+    ]);
+    const identity = {
+      ...auth("User"),
+      permissions: [...auth("User").permissions, "audit.view" as const],
+    };
+    const result = await readCrmActivity({ ...f, auth: identity }, "opportunities", other, 2, ws);
+    expect(result.rows[0]).toEqual({
+      id: 2,
+      actorId: user,
+      actorName: "Actual actor",
+      action: "update",
+      createdAt: "2026-10-18T10:00:00Z",
+    });
+    const audit = f.calls.find((c) => c.table === "audit_logs")!;
+    expect(audit.ops).toContainEqual(["eq", "workspace_id", ws]);
+    expect(audit.ops).toContainEqual(["eq", "table_name", "opportunities"]);
+    expect(audit.ops).toContainEqual(["eq", "record_id", other]);
+    expect(audit.ops).toContainEqual(["range", 20, 39]);
+    expect(audit.ops).toContainEqual(["order", "id", { ascending: false }]);
+    expect(JSON.stringify(result)).not.toContain("amount");
+    expect(audit.ops[0]![1]).not.toContain("data");
+    expect(f.calls[0]!.ops[0]![1]).not.toContain("amount");
+  });
+  it("rejects missing audit permission without reading the database", async () => {
+    const f = fake();
+    await expect(readCrmActivity({ ...f, auth: auth() }, "contacts", other)).rejects.toThrow(
+      "audit viewing permission",
+    );
+    expect(f.calls).toHaveLength(0);
+  });
+  it("preserves unavailable actor IDs and does not impersonate a current employee", async () => {
+    const f = fake([
+      { data: { id: other }, error: null },
+      {
+        data: [
+          { id: 1, actor_id: user, action: "insert", created_at: "2026-10-18T10:00:00Z" },
+          { id: 2, actor_id: null, action: "update", created_at: "2026-10-18T10:00:01Z" },
+        ],
+        error: null,
+        count: 2,
+      },
+      { data: null, error: { code: "42501" } },
+    ]);
+    const result = await readCrmActivity(
+      { ...f, auth: { ...auth(), permissions: ["audit.view"] } },
+      "contacts",
+      other,
+    );
+    expect(result.rows[0]!.actorName).toBe(`Member ${user}`);
+    expect(result.rows[1]!.actorName).toBe("System or removed account");
+  });
+});
+describe("optimistic CRM concurrency", () => {
+  it("checks the loaded version in the same database update", async () => {
+    const version = "2026-10-18T10:00:00Z";
+    const f = fake([{ data: { id: other }, error: null }]);
+    await mutateCrm(
+      { ...f, auth: auth() },
+      "contacts",
+      "update",
+      other,
+      { full_name: "Changed" },
+      ws,
+      version,
+    );
+    expect(f.calls[0]!.ops).toContainEqual(["eq", "updated_at", version]);
+    expect(f.calls[0]!.ops).toContainEqual(["eq", "workspace_id", ws]);
+  });
+  it("does not overwrite or delete a concurrently changed record", async () => {
+    const f = fake([{ data: null, error: { code: "PGRST116" } }]);
+    await expect(
+      mutateCrm(
+        { ...f, auth: auth() },
+        "companies",
+        "delete",
+        other,
+        undefined,
+        ws,
+        "2026-10-18T10:00:00Z",
+      ),
+    ).rejects.toThrow("record changed");
   });
 });

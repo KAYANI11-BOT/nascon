@@ -9,7 +9,7 @@ import {
   uuid,
   type CrmReferences,
 } from "./crm-live.contracts";
-import { dbError, getCrm, listCrm, mutateCrm } from "./crm-live.server";
+import { dbError, getCrm, listCrm, mutateCrm, readCrmActivity } from "./crm-live.server";
 
 async function session() {
   const auth = await getAuthContext();
@@ -33,12 +33,21 @@ export const mutateLiveCrm = createServerFn({ method: "POST" })
         id: uuid.optional(),
         values: z.unknown().optional(),
         workspaceId: uuid.optional(),
+        expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
       })
       .strict()
       .parse(v),
   )
   .handler(async ({ data }) =>
-    mutateCrm(await session(), data.entity, data.action, data.id, data.values, data.workspaceId),
+    mutateCrm(
+      await session(),
+      data.entity,
+      data.action,
+      data.id,
+      data.values,
+      data.workspaceId,
+      data.expectedUpdatedAt,
+    ),
   );
 export const getCrmReferences = createServerFn({ method: "GET" })
   .validator((v: unknown) => z.object({ workspaceId: uuid }).strict().parse(v))
@@ -102,20 +111,36 @@ export const getContactActivity = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const s = await session();
-    const { workspaceId } = assertCrmIdentity(s.auth, data.workspaceId);
-    if (!s.auth.permissions.includes("audit.view"))
-      throw new Error("Activity requires audit viewing permission.");
-    await getCrm(s, "contacts", data.contactId, workspaceId);
-    // Do not select old_data/new_data: audit snapshots can contain restricted monetary fields.
-    const r = await s.db
-      .from("audit_logs")
-      .select("id,actor_id,action,created_at", { count: "exact" })
-      .eq("workspace_id", workspaceId)
-      .eq("table_name", "contacts")
-      .eq("record_id", data.contactId)
-      .order("created_at", { ascending: false })
-      .order("id")
-      .range((data.page - 1) * 20, data.page * 20 - 1);
-    dbError(r.error);
-    return { rows: r.data ?? [], total: r.count ?? 0 };
+    const result = await readCrmActivity(
+      s,
+      "contacts",
+      data.contactId,
+      data.page,
+      data.workspaceId,
+    );
+    return {
+      rows: result.rows.map((r) => ({
+        id: r.id,
+        actor_id: r.actorId,
+        actor_name: r.actorName,
+        action: r.action,
+        created_at: r.createdAt,
+      })),
+      total: result.total,
+    };
   });
+export const getCrmActivity = createServerFn({ method: "GET" })
+  .validator((v: unknown) =>
+    z
+      .object({
+        workspaceId: uuid,
+        entity: z.enum(["contacts", "opportunities"]),
+        id: uuid,
+        page: z.number().int().min(1).max(100000).default(1),
+      })
+      .strict()
+      .parse(v),
+  )
+  .handler(async ({ data }) =>
+    readCrmActivity(await session(), data.entity, data.id, data.page, data.workspaceId),
+  );

@@ -135,6 +135,9 @@ export function LiveDashboard() {
           Refresh
         </Button>
       </PageHeading>
+      {q.isFetching && (
+        <p role="status">Refreshing dashboard; displayed figures are from the previous load.</p>
+      )}
       <div className="metrics-grid">
         {metrics
           .filter((m) => !hidden.includes(m.name))
