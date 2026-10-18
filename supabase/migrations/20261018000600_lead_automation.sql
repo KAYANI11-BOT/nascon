@@ -729,7 +729,7 @@ create function public.get_recovery_queue(
 returns table (
   lead_id uuid, full_name text, source text, assigned_to uuid, status text, created_at timestamptz,
   acknowledged boolean, escalation_level integer, escalations_since_review bigint, last_action_at timestamptz,
-  acknowledgement_due_at timestamptz, needs_manager_review boolean, reasons text[], total_count bigint)
+  acknowledgement_due_at timestamptz, needs_manager_review boolean, version integer, reasons text[], total_count bigint)
 language sql
 stable
 security invoker
@@ -762,11 +762,40 @@ as $$
   )
   select f.id, f.full_name, f.source, f.assigned_to, f.status, f.created_at, f.acknowledged_at is not null,
          f.escalation_level, f.esc_since, f.last_action_at, f.acknowledgement_due_at, f.needs_manager_review,
-         f.reasons, count(*) over ()
+         f.version, f.reasons, count(*) over ()
   from flagged f
   where cardinality(f.reasons) > 0 and (p_reason is null or p_reason = any (f.reasons))
   order by f.created_at
   limit least(greatest(p_limit, 1), 100) offset greatest(p_offset, 0);
+$$;
+
+-- Atomically replaces a rule's round-robin ring (order = array order). Requires assignment_rules.manage.
+create function public.set_rule_assignees(p_rule uuid, p_user_ids uuid[])
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_ws uuid;
+begin
+  if (select auth.uid()) is null then raise exception 'authentication required' using errcode = '28000'; end if;
+  select workspace_id into v_ws from public.assignment_rules where id = p_rule;
+  if v_ws is null or not private.has_workspace_permission(v_ws, 'assignment_rules.manage') then
+    raise exception 'permission assignment_rules.manage is required' using errcode = '42501';
+  end if;
+  if exists (select 1 from unnest(coalesce(p_user_ids, '{}')) u group by u having count(*) > 1) then
+    raise exception 'duplicate assignee in ring' using errcode = '22023';
+  end if;
+  if exists (select 1 from unnest(coalesce(p_user_ids, '{}')) u
+             where not exists (select 1 from public.workspace_members m where m.workspace_id = v_ws and m.user_id = u)) then
+    raise exception 'every assignee must be a workspace member' using errcode = '22023';
+  end if;
+  perform 1 from public.assignment_rules where id = p_rule for update;
+  delete from public.assignment_rule_assignees where rule_id = p_rule;
+  insert into public.assignment_rule_assignees (rule_id, workspace_id, user_id, position)
+  select p_rule, v_ws, u.user_id, (u.ord - 1)::int from unnest(coalesce(p_user_ids, '{}')) with ordinality as u(user_id, ord);
+end;
 $$;
 
 -- Time to first response = first acknowledgement - first assignment (never reset by reassignment).
@@ -961,11 +990,12 @@ revoke all on function public.create_lead(uuid, text, text, text, text, text, te
   public.acknowledge_lead(uuid, uuid), public.record_lead_action(uuid, text, text),
   public.reassign_lead(uuid, uuid, integer, text), public.resolve_recovery(uuid),
   public.get_recovery_queue(uuid, text, uuid, text, text, timestamptz, timestamptz, integer, integer),
-  public.get_first_response_stats(uuid, timestamptz, timestamptz),
+  public.get_first_response_stats(uuid, timestamptz, timestamptz), public.set_rule_assignees(uuid, uuid[]),
   public.escalate_overdue_leads(integer), public.claim_notifications(integer),
   public.complete_notification(uuid, boolean, text, text) from public, anon, authenticated;
 grant execute on function public.create_lead(uuid, text, text, text, text, text, text),
   public.acknowledge_lead(uuid, uuid), public.record_lead_action(uuid, text, text),
+  public.set_rule_assignees(uuid, uuid[]),
   public.reassign_lead(uuid, uuid, integer, text), public.resolve_recovery(uuid),
   public.get_recovery_queue(uuid, text, uuid, text, text, timestamptz, timestamptz, integer, integer),
   public.get_first_response_stats(uuid, timestamptz, timestamptz) to authenticated;

@@ -335,6 +335,22 @@ if (another) {
 }
 ok('a recipient reads only their own notifications; others cannot', (await as('C', `select * from notification_outbox where recipient_user_id <> $1`, [U.C])).rows.length === 0);
 
+// ---------------- S12b atomic ring management ----------------
+ok('plain employee cannot replace the round-robin ring', !!(await attempt('D', `select public.set_rule_assignees($1, array[$2]::uuid[])`, [ruleA, U.D])).err);
+await as('E', `select public.set_rule_assignees($1, array[$2,$3,$4]::uuid[])`, [ruleA, U.D, U.B, U.C]);
+ok('rule manager replaces the ring atomically and the array order becomes the rotation order',
+  (await q(`select user_id from assignment_rule_assignees where rule_id='${ruleA}' order by position`)).map((r) => r.user_id).join() === [U.D, U.B, U.C].join());
+await reset();
+await as('E', `select public.set_rule_assignees($1, array[$2,$3,$4]::uuid[])`, [ruleA, U.D, U.B, U.C]);
+const ringLeads = []; for (const n of ['R1', 'R2', 'R3']) ringLeads.push(await mk(n));
+ok('new ring order D -> B -> C is honoured by assignment', owners(ringLeads).join('') === 'DBC', owners(ringLeads).join(''));
+const dupRing = await attempt('E', `select public.set_rule_assignees($1, array[$2,$2]::uuid[])`, [ruleA, U.B]);
+ok('a duplicate assignee is rejected and the existing ring is untouched',
+  !!dupRing.err && (await q(`select count(*)::int c from assignment_rule_assignees where rule_id='${ruleA}'`))[0].c === 3);
+ok('a non-member (other workspace) cannot join the ring', !!(await attempt('E', `select public.set_rule_assignees($1, array[$2]::uuid[])`, [ruleA, U.H])).err);
+ok('anonymous cannot manage the ring', !!(await attempt('anon', `select public.set_rule_assignees($1, array[$2]::uuid[])`, [ruleA, U.B])).err);
+await as('E', `select public.set_rule_assignees($1, array[$2,$3,$4]::uuid[])`, [ruleA, U.B, U.C, U.D]);
+
 // ---------------- S13 definer hygiene ----------------
 const defs = (await q(`select p.proname, p.proconfig from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prosecdef`));
 ok('every SECURITY DEFINER function pins search_path', defs.every((d) => (d.proconfig ?? []).some((c) => c.startsWith('search_path='))), defs.filter((d) => !(d.proconfig ?? []).some((c) => c.startsWith('search_path='))).map((d) => d.proname).join(','));

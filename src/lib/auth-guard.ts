@@ -2,7 +2,8 @@ import type { AuthContext } from '@/types/domain';
 
 export const AUTH_PAGES = ['/login', '/signup'];
 export const ONBOARDING_PAGE = '/onboarding';
-const ALWAYS_PUBLIC = ['/auth/confirm'];
+// '/lead-capture/' is the public lead form (Member 2): visitors have no account or workspace.
+const ALWAYS_PUBLIC = ['/auth/confirm', '/lead-capture/'];
 
 /** Only same-origin relative paths are accepted as post-login destinations. */
 export function safeRedirectPath(value: unknown, fallback = '/') {

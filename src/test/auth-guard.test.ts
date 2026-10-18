@@ -12,6 +12,11 @@ describe("resolveAuthRedirect", () => {
     expect(resolveAuthRedirect(signedOut, "/login")).toBeNull();
     expect(resolveAuthRedirect(signedOut, "/auth/confirm")).toBeNull();
   });
+  it("keeps the public lead form reachable without an account or workspace", () => {
+    expect(resolveAuthRedirect(signedOut, "/lead-capture/acme-leads")).toBeNull();
+    expect(resolveAuthRedirect({ ...signedOut, user }, "/lead-capture/acme-leads")).toBeNull();
+    expect(resolveAuthRedirect(signedOut, "/lead-capturex")).toEqual({ to: "/login", search: { redirect: "/lead-capturex" } });
+  });
   it("lets signed-out visitors browse in demo mode", () => {
     expect(resolveAuthRedirect({ ...signedOut, enforced: false }, "/leads")).toBeNull();
   });

@@ -4,12 +4,11 @@ import type {
   Assignee,
   AssignmentRules,
   Lead,
-  LeadSource,
   NotificationOutboxPayload,
   QualifyingAction,
   RecoveryReason,
 } from '@/types/leads';
-import {QUALIFYING_ACTIONS} from '@/types/leads';
+import {CLOSED_STATUSES, QUALIFYING_ACTIONS} from '@/types/leads';
 
 export function isEligible(a: Assignee, rules: Pick<AssignmentRules, 'maxOpenLeads' | 'eligibleUserIds'>): boolean {
   return (
@@ -87,25 +86,39 @@ export function nextEscalationTarget(
   return {kind: 'exception', level};
 }
 
-export function isEscalatable(lead: Lead, now: Date): boolean {
+/** Mirrors public.escalate_overdue_leads: owned, unacknowledged, overdue, open, below the final level. */
+export function isEscalatable(lead: Lead, now: Date, maxEscalationLevels = Number.POSITIVE_INFINITY): boolean {
   return (
-    lead.status === 'assigned' &&
+    !CLOSED_STATUSES.includes(lead.status) &&
     lead.assignedTo !== null &&
     lead.acknowledgedAt === null &&
     lead.acknowledgementDeadline !== null &&
-    new Date(lead.acknowledgementDeadline).getTime() <= now.getTime()
+    new Date(lead.acknowledgementDeadline).getTime() <= now.getTime() &&
+    lead.escalationLevel < maxEscalationLevels
   );
 }
 
-export function recoveryReasons(lead: Lead, rules: Pick<AssignmentRules, 'idleThresholdSeconds'>, now: Date): RecoveryReason[] {
-  if (lead.status === 'closed') return [];
+/**
+ * Mirrors public.get_recovery_queue. `escalationsSinceReview` counts escalation events after the
+ * last recovery review; it defaults to the lead's level when events are not available.
+ */
+export function recoveryReasons(
+  lead: Lead,
+  rules: Pick<AssignmentRules, 'idleThresholdSeconds' | 'ackTimeoutSeconds'>,
+  now: Date,
+  escalationsSinceReview: number = lead.escalationLevel,
+): RecoveryReason[] {
+  if (CLOSED_STATUSES.includes(lead.status)) return [];
   const reasons: RecoveryReason[] = [];
-  if (lead.acknowledgedAt === null && lead.acknowledgementDeadline !== null && new Date(lead.acknowledgementDeadline) < now) {
+  if (lead.assignedTo !== null && lead.acknowledgedAt === null && lead.acknowledgementDeadline !== null && new Date(lead.acknowledgementDeadline) < now) {
     reasons.push('unacknowledged_overdue');
   }
-  if (lead.escalationLevel >= 2) reasons.push('repeated_escalation');
-  const lastAction = new Date(lead.lastActionAt ?? lead.createdAt).getTime();
-  if (now.getTime() - lastAction > rules.idleThresholdSeconds * 1000) reasons.push('idle');
+  if (escalationsSinceReview >= 2) reasons.push('repeated_escalation');
+  const created = new Date(lead.createdAt).getTime();
+  const lastAction = Math.max(new Date(lead.lastActionAt ?? lead.createdAt).getTime(), new Date(lead.recoveryResolvedAt ?? lead.createdAt).getTime());
+  if (now.getTime() - Math.max(lastAction, created) > rules.idleThresholdSeconds * 1000) reasons.push('idle');
+  if (lead.ownershipException) reasons.push('ownership_exception');
+  if (lead.assignedTo === null && !lead.ownershipException && now.getTime() - created > rules.ackTimeoutSeconds * 1000) reasons.push('unassigned');
   return reasons;
 }
 
@@ -124,7 +137,7 @@ export function buildEscalationNotification(args: {
   workspaceId: string;
   leadId: string;
   leadName: string;
-  source: LeadSource;
+  source: string | null;
   recipientUserId: string;
   eventId: string;
   reason: string;

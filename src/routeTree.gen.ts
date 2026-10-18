@@ -34,7 +34,8 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TeamRouteImport } from './routes/team'
 import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as ContactsIdRouteImport } from './routes/contacts_.$id'
-import { Route as LeadsIdRouteImport } from './routes/leads.$id'
+import { Route as LeadCaptureWorkspaceSlugRouteImport } from './routes/lead-capture.$workspaceSlug'
+import { Route as LeadsIdRouteImport } from './routes/leads_.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -161,10 +162,16 @@ const ContactsIdRoute = ContactsIdRouteImport.update({
   path: '/contacts/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeadCaptureWorkspaceSlugRoute =
+  LeadCaptureWorkspaceSlugRouteImport.update({
+    id: '/lead-capture/$workspaceSlug',
+    path: '/lead-capture/$workspaceSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LeadsIdRoute = LeadsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => LeadsRoute,
+  id: '/leads_/$id',
+  path: '/leads/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -178,7 +185,7 @@ export interface FileRoutesByFullPath {
   '/conversations': typeof ConversationsRoute
   '/custom-fields': typeof CustomFieldsRoute
   '/integrations': typeof IntegrationsRoute
-  '/leads': typeof LeadsRouteWithChildren
+  '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/opportunities': typeof OpportunitiesRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/team': typeof TeamRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/contacts/$id': typeof ContactsIdRoute
+  '/lead-capture/$workspaceSlug': typeof LeadCaptureWorkspaceSlugRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesByTo {
@@ -206,7 +214,7 @@ export interface FileRoutesByTo {
   '/conversations': typeof ConversationsRoute
   '/custom-fields': typeof CustomFieldsRoute
   '/integrations': typeof IntegrationsRoute
-  '/leads': typeof LeadsRouteWithChildren
+  '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/opportunities': typeof OpportunitiesRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/team': typeof TeamRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/contacts/$id': typeof ContactsIdRoute
+  '/lead-capture/$workspaceSlug': typeof LeadCaptureWorkspaceSlugRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesById {
@@ -235,7 +244,7 @@ export interface FileRoutesById {
   '/conversations': typeof ConversationsRoute
   '/custom-fields': typeof CustomFieldsRoute
   '/integrations': typeof IntegrationsRoute
-  '/leads': typeof LeadsRouteWithChildren
+  '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/opportunities': typeof OpportunitiesRoute
@@ -250,7 +259,8 @@ export interface FileRoutesById {
   '/team': typeof TeamRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/contacts_/$id': typeof ContactsIdRoute
-  '/leads/$id': typeof LeadsIdRoute
+  '/lead-capture/$workspaceSlug': typeof LeadCaptureWorkspaceSlugRoute
+  '/leads_/$id': typeof LeadsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/auth/confirm'
     | '/contacts/$id'
+    | '/lead-capture/$workspaceSlug'
     | '/leads/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/auth/confirm'
     | '/contacts/$id'
+    | '/lead-capture/$workspaceSlug'
     | '/leads/$id'
   id:
     | '__root__'
@@ -336,7 +348,8 @@ export interface FileRouteTypes {
     | '/team'
     | '/auth/confirm'
     | '/contacts_/$id'
-    | '/leads/$id'
+    | '/lead-capture/$workspaceSlug'
+    | '/leads_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -350,7 +363,7 @@ export interface RootRouteChildren {
   ConversationsRoute: typeof ConversationsRoute
   CustomFieldsRoute: typeof CustomFieldsRoute
   IntegrationsRoute: typeof IntegrationsRoute
-  LeadsRoute: typeof LeadsRouteWithChildren
+  LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   OpportunitiesRoute: typeof OpportunitiesRoute
@@ -365,6 +378,8 @@ export interface RootRouteChildren {
   TeamRoute: typeof TeamRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   ContactsIdRoute: typeof ContactsIdRoute
+  LeadCaptureWorkspaceSlugRoute: typeof LeadCaptureWorkspaceSlugRoute
+  LeadsIdRoute: typeof LeadsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -544,25 +559,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/leads/$id': {
-      id: '/leads/$id'
-      path: '/$id'
+    '/lead-capture/$workspaceSlug': {
+      id: '/lead-capture/$workspaceSlug'
+      path: '/lead-capture/$workspaceSlug'
+      fullPath: '/lead-capture/$workspaceSlug'
+      preLoaderRoute: typeof LeadCaptureWorkspaceSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads_/$id': {
+      id: '/leads_/$id'
+      path: '/leads/$id'
       fullPath: '/leads/$id'
       preLoaderRoute: typeof LeadsIdRouteImport
-      parentRoute: typeof LeadsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface LeadsRouteChildren {
-  LeadsIdRoute: typeof LeadsIdRoute
-}
-
-const LeadsRouteChildren: LeadsRouteChildren = {
-  LeadsIdRoute: LeadsIdRoute,
-}
-
-const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -575,7 +587,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConversationsRoute: ConversationsRoute,
   CustomFieldsRoute: CustomFieldsRoute,
   IntegrationsRoute: IntegrationsRoute,
-  LeadsRoute: LeadsRouteWithChildren,
+  LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   OpportunitiesRoute: OpportunitiesRoute,
@@ -590,6 +602,8 @@ const rootRouteChildren: RootRouteChildren = {
   TeamRoute: TeamRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   ContactsIdRoute: ContactsIdRoute,
+  LeadCaptureWorkspaceSlugRoute: LeadCaptureWorkspaceSlugRoute,
+  LeadsIdRoute: LeadsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
