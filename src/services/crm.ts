@@ -1,0 +1,3 @@
+import type {CrmService,ServiceResult} from '@/types/domain';
+// Typed unavailable adapter: every method reports that configuration is required and never simulates success.
+export function createUnavailableCrmService<Row,Input>(label:string):CrmService<Row,Input>{const unavailable=async<R>():Promise<ServiceResult<R>>=>({data:null,error:`Configuration required: ${label} database services are not connected.`});return {list:(_workspaceId)=>unavailable<Row[]>(),getById:(_workspaceId,_id)=>unavailable<Row>(),create:(_workspaceId,_input)=>unavailable<Row>(),update:(_workspaceId,_id,_input)=>unavailable<Row>(),delete:(_workspaceId,_id)=>unavailable<null>()};}

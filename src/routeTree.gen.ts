@@ -33,7 +33,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TeamRouteImport } from './routes/team'
 import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
-import { Route as ContactsIdRouteImport } from './routes/contacts.$id'
+import { Route as ContactsIdRouteImport } from './routes/contacts_.$id'
 import { Route as LeadsIdRouteImport } from './routes/leads.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -157,9 +157,9 @@ const AuthConfirmRoute = AuthConfirmRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsIdRoute = ContactsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ContactsRoute,
+  id: '/contacts_/$id',
+  path: '/contacts/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LeadsIdRoute = LeadsIdRouteImport.update({
   id: '/$id',
@@ -174,7 +174,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/availability': typeof AvailabilityRoute
   '/companies': typeof CompaniesRoute
-  '/contacts': typeof ContactsRouteWithChildren
+  '/contacts': typeof ContactsRoute
   '/conversations': typeof ConversationsRoute
   '/custom-fields': typeof CustomFieldsRoute
   '/integrations': typeof IntegrationsRoute
@@ -202,7 +202,7 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/availability': typeof AvailabilityRoute
   '/companies': typeof CompaniesRoute
-  '/contacts': typeof ContactsRouteWithChildren
+  '/contacts': typeof ContactsRoute
   '/conversations': typeof ConversationsRoute
   '/custom-fields': typeof CustomFieldsRoute
   '/integrations': typeof IntegrationsRoute
@@ -231,7 +231,7 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/availability': typeof AvailabilityRoute
   '/companies': typeof CompaniesRoute
-  '/contacts': typeof ContactsRouteWithChildren
+  '/contacts': typeof ContactsRoute
   '/conversations': typeof ConversationsRoute
   '/custom-fields': typeof CustomFieldsRoute
   '/integrations': typeof IntegrationsRoute
@@ -249,7 +249,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
   '/auth/confirm': typeof AuthConfirmRoute
-  '/contacts/$id': typeof ContactsIdRoute
+  '/contacts_/$id': typeof ContactsIdRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRouteTypes {
@@ -335,7 +335,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/team'
     | '/auth/confirm'
-    | '/contacts/$id'
+    | '/contacts_/$id'
     | '/leads/$id'
   fileRoutesById: FileRoutesById
 }
@@ -346,7 +346,7 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   AvailabilityRoute: typeof AvailabilityRoute
   CompaniesRoute: typeof CompaniesRoute
-  ContactsRoute: typeof ContactsRouteWithChildren
+  ContactsRoute: typeof ContactsRoute
   ConversationsRoute: typeof ConversationsRoute
   CustomFieldsRoute: typeof CustomFieldsRoute
   IntegrationsRoute: typeof IntegrationsRoute
@@ -364,6 +364,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TeamRoute: typeof TeamRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
+  ContactsIdRoute: typeof ContactsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -536,12 +537,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/contacts/$id': {
-      id: '/contacts/$id'
-      path: '/$id'
+    '/contacts_/$id': {
+      id: '/contacts_/$id'
+      path: '/contacts/$id'
       fullPath: '/contacts/$id'
       preLoaderRoute: typeof ContactsIdRouteImport
-      parentRoute: typeof ContactsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/leads/$id': {
       id: '/leads/$id'
@@ -552,18 +553,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface ContactsRouteChildren {
-  ContactsIdRoute: typeof ContactsIdRoute
-}
-
-const ContactsRouteChildren: ContactsRouteChildren = {
-  ContactsIdRoute: ContactsIdRoute,
-}
-
-const ContactsRouteWithChildren = ContactsRoute._addFileChildren(
-  ContactsRouteChildren,
-)
 
 interface LeadsRouteChildren {
   LeadsIdRoute: typeof LeadsIdRoute
@@ -582,7 +571,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   AvailabilityRoute: AvailabilityRoute,
   CompaniesRoute: CompaniesRoute,
-  ContactsRoute: ContactsRouteWithChildren,
+  ContactsRoute: ContactsRoute,
   ConversationsRoute: ConversationsRoute,
   CustomFieldsRoute: CustomFieldsRoute,
   IntegrationsRoute: IntegrationsRoute,
@@ -600,6 +589,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TeamRoute: TeamRoute,
   AuthConfirmRoute: AuthConfirmRoute,
+  ContactsIdRoute: ContactsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

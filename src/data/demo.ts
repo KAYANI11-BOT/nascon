@@ -1,5 +1,5 @@
 // Isolated sample fixtures; do not import into production service adapters.
-import type { RecordItem, TeamMember, EntityKind } from '@/types/domain';
+import type { RecordItem, TeamMember, EntityKind, PipelineConfig } from '@/types/domain';
 export const demoWorkspace = { id:'demo-workspace',name:'Acme Studio',industry:'Professional services',timezone:'Asia/Karachi' };
 export const demoTeam:TeamMember[] = [
  {id:'tm1',name:'Hafsa Batool',email:'hafsa@example.com',role:'Owner',initials:'HB',availability:'Available',leads:8},
@@ -17,3 +17,5 @@ export const demoPayments=[{id:'INV-1048',name:'Untitled',amount:8500,status:'Pa
 export const demoAppointments=[{id:'ap1',title:'Discovery call',contact:'Olivia Rhye',day:19,time:'10:00',duration:'30 min',owner:'Alex Morgan'},{id:'ap2',title:'Proposal review',contact:'Lana Steiner',day:20,time:'14:00',duration:'45 min',owner:'Sarah Chen'},{id:'ap3',title:'Project kickoff',contact:'Drew Cano',day:22,time:'11:30',duration:'60 min',owner:'Hafsa Batool'}];
 export const demoAudit=[{id:'au1',actor:'Alex Morgan',action:'Lead created',target:'Olivia Rhye',time:'18 Oct 2026, 10:42'},{id:'au2',actor:'Sarah Chen',action:'Opportunity stage changed',target:'Sisyphus — Website redesign',time:'18 Oct 2026, 10:30'},{id:'au3',actor:'Hafsa Batool',action:'Workspace settings updated',target:'Acme Studio',time:'18 Oct 2026, 09:15'}];
 export const pipelineStages=['Discovery','Qualified','Proposal','Negotiation','Won'];
+// Sample pipelines for the CRM pipeline module; existing sample opportunities belong to the default pipeline.
+export const demoPipelines:PipelineConfig[]=[{id:'pipeline-sales',name:'Sales pipeline',isDefault:true,stages:pipelineStages.map((name,i)=>({id:`stage-sales-${i+1}`,name,type:name==='Won'?'won':'open'})),fields:[{id:'field-sales-1',key:'decision_maker',label:'Decision maker',type:'text'}]},{id:'pipeline-partners',name:'Partnerships',isDefault:false,stages:[{id:'stage-partners-1',name:'Introduction',type:'open'},{id:'stage-partners-2',name:'Evaluation',type:'open'},{id:'stage-partners-3',name:'Agreement',type:'open'},{id:'stage-partners-4',name:'Live',type:'won'},{id:'stage-partners-5',name:'Declined',type:'lost'}],fields:[{id:'field-partners-1',key:'partner_tier',label:'Partner tier',type:'select',options:['Silver','Gold','Platinum']},{id:'field-partners-2',key:'referral_fee',label:'Referral fee (%)',type:'number'}]}];
