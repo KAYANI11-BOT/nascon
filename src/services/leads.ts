@@ -51,6 +51,7 @@ export function toRecoveryItem(r: Row): RecoveryItem {
     status: r['status'] as LeadStatus, createdAt: String(r['created_at']), acknowledged: r['acknowledged'] === true,
     escalationLevel: int(r['escalation_level']), escalationsSinceReview: int(r['escalations_since_review']),
     lastActionAt: str(r['last_action_at']), deadline: str(r['acknowledgement_due_at']), needsManagerReview: r['needs_manager_review'] === true,
+    version: int(r['version'], 1),
     reasons: (Array.isArray(r['reasons']) ? r['reasons'] : []) as RecoveryReason[],
   };
 }

@@ -125,6 +125,8 @@ export interface RecoveryItem {
   lastActionAt: string | null;
   deadline: string | null;
   needsManagerReview: boolean;
+  /** Lead version, required for optimistic-concurrency reassignment. */
+  version: number;
   reasons: RecoveryReason[];
 }
 

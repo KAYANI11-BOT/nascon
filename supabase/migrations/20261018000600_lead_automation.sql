@@ -729,7 +729,7 @@ create function public.get_recovery_queue(
 returns table (
   lead_id uuid, full_name text, source text, assigned_to uuid, status text, created_at timestamptz,
   acknowledged boolean, escalation_level integer, escalations_since_review bigint, last_action_at timestamptz,
-  acknowledgement_due_at timestamptz, needs_manager_review boolean, reasons text[], total_count bigint)
+  acknowledgement_due_at timestamptz, needs_manager_review boolean, version integer, reasons text[], total_count bigint)
 language sql
 stable
 security invoker
@@ -762,7 +762,7 @@ as $$
   )
   select f.id, f.full_name, f.source, f.assigned_to, f.status, f.created_at, f.acknowledged_at is not null,
          f.escalation_level, f.esc_since, f.last_action_at, f.acknowledgement_due_at, f.needs_manager_review,
-         f.reasons, count(*) over ()
+         f.version, f.reasons, count(*) over ()
   from flagged f
   where cardinality(f.reasons) > 0 and (p_reason is null or p_reason = any (f.reasons))
   order by f.created_at
