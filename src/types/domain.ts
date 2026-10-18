@@ -36,6 +36,25 @@ export type OpportunityCustomValues = Record<string,string|number|boolean|null>;
 export interface CustomFieldConfig { id:string; key:string; label:string; type:CustomFieldType; options?:string[]; required:boolean; }
 export interface PipelineStageConfig { id:string; name:string; type:StageType; requiredFieldIds:string[]; }
 export interface PipelineConfig { id:string; name:string; isDefault:boolean; stages:PipelineStageConfig[]; fields:CustomFieldConfig[]; }
+// --- Saved filters (F2.6). PROPOSED contract, NOT in the approved schema: needs a saved_filters table (see SavedFilter).
+// The schema has no tags/labels column on opportunities, so tag conditions are not supported.
+export type FilterDateField = 'created'|'closeDate';
+export type FilterDateOperator = 'before'|'after'|'on'|'between';
+export type FilterCustomOperator = 'equals'|'contains'|'gt'|'lt';
+// Conditions are combined with AND. Stage conditions store the stage name as the UI knows it; a persisted version
+// should reference stage_id so renaming a stage does not break a saved filter.
+export type FilterCondition =
+  | { id:string; kind:'stage'; value:string }
+  | { id:string; kind:'owner'; value:string }
+  | { id:string; kind:'date'; dateField:FilterDateField; operator:FilterDateOperator; value:string; valueTo?:string }
+  | { id:string; kind:'custom'; pipelineId:string; fieldKey:string; operator:FilterCustomOperator; value:string };
+export type FilterConditionKind = FilterCondition['kind'];
+/** pipelineId is 'all' for every pipeline, otherwise the pipeline the filter is limited to. */
+export interface FilterDefinition { pipelineId:string; conditions:FilterCondition[]; }
+export interface SavedFilterConfig extends FilterDefinition { id:string; name:string; }
+// Proposed table row: workspace-scoped and private to its creator (user_id) unless a sharing rule is agreed.
+export interface SavedFilter { id:string; workspace_id:string; user_id:string; entity:'opportunities'; name:string; pipeline_id:string|null; conditions:FilterCondition[]; created_at:string; updated_at:string; }
+export type SavedFilterInput = Omit<SavedFilter,'id'|'workspace_id'|'user_id'|'created_at'|'updated_at'>;
 
 // --- Authentication and workspace contracts (shared by all feature modules) ---
 export type { PermissionKey } from './database';
