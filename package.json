@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:db": "node supabase/tests/rls-local.mjs",
-    "test:db:leads": "node supabase/tests/lead-automation-local.mjs"
+    "test:db:leads": "node supabase/tests/lead-automation-local.mjs",
+    "test:db:concurrency": "node supabase/tests/lead-concurrency-local.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -84,6 +85,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "embedded-postgres": "^17.10.0-beta.17",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
@@ -92,6 +94,7 @@
     "globals": "^15.15.0",
     "jsdom": "^20.0.3",
     "nitro": "3.0.260603-beta",
+    "pg": "^8.23.1",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

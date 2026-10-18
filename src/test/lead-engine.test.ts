@@ -15,6 +15,7 @@ import type {Assignee, AssignmentRules, Lead} from '@/types/leads';
 
 const rules: AssignmentRules = {
   active: true,
+  strategy: 'round_robin',
   maxOpenLeads: 2,
   ackTimeoutSeconds: 60,
   escalationTimeoutsSeconds: [30, 20],
@@ -38,21 +39,27 @@ const now = new Date('2026-10-18T10:00:00Z');
 const lead = (over: Partial<Lead> = {}): Lead => ({
   id: 'l1',
   workspaceId: 'w1',
-  contactId: null,
   name: 'Olivia',
+  email: null,
+  phone: null,
+  company: null,
+  message: null,
   source: 'manual',
-  status: 'assigned',
+  status: 'new',
   assignedTo: 'A',
   currentAssignmentId: 'as1',
   createdAt: '2026-10-18T09:00:00Z',
   updatedAt: '2026-10-18T09:00:00Z',
   firstAssignedAt: '2026-10-18T09:00:00Z',
-  lastAssignedAt: '2026-10-18T09:00:00Z',
+  assignedAt: '2026-10-18T09:00:00Z',
   firstAcknowledgedAt: null,
   acknowledgedAt: null,
   acknowledgementDeadline: '2026-10-18T09:59:00Z',
   escalationLevel: 0,
   lastActionAt: '2026-10-18T09:55:00Z',
+  needsManagerReview: false,
+  ownershipException: false,
+  recoveryResolvedAt: null,
   version: 1,
   ...over,
 });
@@ -128,22 +135,38 @@ describe('escalation chain', () => {
     expect(isEscalatable(lead(), now)).toBe(true);
     expect(isEscalatable(lead({acknowledgedAt: '2026-10-18T09:30:00Z'}), now)).toBe(false);
     expect(isEscalatable(lead({acknowledgementDeadline: '2026-10-18T10:30:00Z'}), now)).toBe(false);
-    expect(isEscalatable(lead({status: 'exception', assignedTo: null}), now)).toBe(false);
+    expect(isEscalatable(lead({assignedTo: null, ownershipException: true}), now)).toBe(false);
+    expect(isEscalatable(lead({status: 'lost'}), now)).toBe(false);
+  });
+  it('stops at the final escalation level', () => {
+    expect(isEscalatable(lead({escalationLevel: 2}), now, 3)).toBe(true);
+    expect(isEscalatable(lead({escalationLevel: 3}), now, 3)).toBe(false);
   });
 });
 
 describe('recovery', () => {
-  it('flags overdue, repeated escalation and idle, possibly several', () => {
+  it('flags overdue, repeated escalation, idle, exception and unassigned, possibly several', () => {
     expect(recoveryReasons(lead(), rules, now)).toEqual(['unacknowledged_overdue']);
     expect(recoveryReasons(lead({escalationLevel: 2, acknowledgementDeadline: '2026-10-18T10:30:00Z'}), rules, now)).toEqual(['repeated_escalation']);
-    const idle = lead({lastActionAt: '2026-10-18T07:00:00Z', acknowledgedAt: '2026-10-18T07:00:00Z'});
+    const idle = lead({lastActionAt: '2026-10-18T07:00:00Z', createdAt: '2026-10-18T06:00:00Z', acknowledgedAt: '2026-10-18T07:00:00Z'});
     expect(recoveryReasons(idle, rules, now)).toEqual(['idle']);
     expect(recoveryReasons(lead({escalationLevel: 3, lastActionAt: null, createdAt: '2026-10-17T00:00:00Z'}), rules, now)).toEqual([
       'unacknowledged_overdue',
       'repeated_escalation',
       'idle',
     ]);
-    expect(recoveryReasons(lead({status: 'closed'}), rules, now)).toEqual([]);
+    expect(recoveryReasons(lead({status: 'converted'}), rules, now)).toEqual([]);
+  });
+  it('uses escalations since the last review, and a review resets the idle clock', () => {
+    expect(recoveryReasons(lead({escalationLevel: 3, acknowledgementDeadline: '2026-10-18T10:30:00Z'}), rules, now, 1)).toEqual([]);
+    const reviewed = lead({lastActionAt: '2026-10-18T06:30:00Z', createdAt: '2026-10-18T06:00:00Z', recoveryResolvedAt: '2026-10-18T09:50:00Z', acknowledgedAt: 'x'});
+    expect(recoveryReasons(reviewed, rules, now)).toEqual([]);
+  });
+  it('reports ownership exceptions and leads left unassigned past the window', () => {
+    const exc = lead({assignedTo: null, ownershipException: true, acknowledgementDeadline: null});
+    expect(recoveryReasons(exc, rules, now)).toEqual(['ownership_exception']);
+    const waiting = lead({assignedTo: null, acknowledgementDeadline: null, createdAt: '2026-10-18T09:30:00Z', lastActionAt: '2026-10-18T09:55:00Z'});
+    expect(recoveryReasons(waiting, rules, now)).toEqual(['unassigned']);
   });
 });
 
