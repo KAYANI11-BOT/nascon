@@ -19,7 +19,7 @@ describe("CRM pipeline demo state", () => {
   it("offers multiple pipelines with their own stages and custom fields", () => {
     const { result } = setup();
     expect(result.current.manager.pipelines.map((p) => p.name)).toEqual(["Sales pipeline", "Partnerships"]);
-    expect(result.current.manager.pipelines[1]!.fields.map((f) => f.key)).toEqual(["partner_tier", "referral_fee"]);
+    expect(result.current.manager.pipelines[1]!.fields.map((f) => f.key)).toEqual(["partner_tier", "referral_fee", "contract_signed"]);
   });
 
   it("moves an opportunity to a stage of its pipeline and syncs status", () => {

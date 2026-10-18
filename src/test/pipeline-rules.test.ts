@@ -8,9 +8,9 @@ const pipeline: PipelineConfig = {
   name: "Sales",
   isDefault: true,
   stages: [
-    { id: "s1", name: "Discovery", type: "open" },
-    { id: "s2", name: "Proposal", type: "open" },
-    { id: "s3", name: "Won", type: "won" },
+    { id: "s1", name: "Discovery", type: "open", requiredFieldIds: [] },
+    { id: "s2", name: "Proposal", type: "open", requiredFieldIds: [] },
+    { id: "s3", name: "Won", type: "won", requiredFieldIds: [] },
   ],
   fields: [],
 };

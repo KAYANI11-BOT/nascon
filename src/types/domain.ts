@@ -23,14 +23,19 @@ export type PipelineInput = CrmInsert<'pipelines'>;
 export type PipelineStageInput = CrmInsert<'pipeline_stages'>;
 export type OpportunityInput = CrmInsert<'opportunities'> & { custom_fields?:OpportunityCustomValues };
 export interface CrmService<Row,Input> { list(workspaceId:string):Promise<ServiceResult<Row[]>>; getById(workspaceId:string,id:string):Promise<ServiceResult<Row>>; create(workspaceId:string,input:Input):Promise<ServiceResult<Row>>; update(workspaceId:string,id:string,input:Partial<Input>):Promise<ServiceResult<Row>>; delete(workspaceId:string,id:string):Promise<ServiceResult<null>>; }
-// Per-pipeline custom fields (problem statement requirement). NOT in crm_core.sql yet: needs a pipeline_custom_fields
-// table and an opportunities.custom_fields jsonb column before these can be persisted.
-export type CustomFieldType = 'text'|'number'|'date'|'select';
+// Per-pipeline custom fields (F2.2–F2.4). PROPOSED contract, NOT in crm_core.sql yet: needs pipeline_custom_fields,
+// pipeline_stage_required_fields and an opportunities.custom_fields jsonb column (to be agreed with Member 1).
+export type CustomFieldType = 'text'|'number'|'date'|'select'|'checkbox';
 export interface PipelineCustomField { id:string; workspace_id:string; pipeline_id:string; key:string; label:string; field_type:CustomFieldType; options:string[]|null; required:boolean; position:number; created_at:string; updated_at:string; }
 export type PipelineCustomFieldInput = Omit<PipelineCustomField,'id'|'workspace_id'|'created_at'|'updated_at'>;
-export type OpportunityCustomValues = Record<string,string|number|null>;
+// A field that must have a value before an opportunity may enter the stage.
+export interface PipelineStageRequiredField { workspace_id:string; pipeline_id:string; stage_id:string; field_id:string; created_at:string; }
+export type PipelineStageRequiredFieldInput = Omit<PipelineStageRequiredField,'workspace_id'|'created_at'>;
+export type OpportunityCustomValues = Record<string,string|number|boolean|null>;
 // UI configuration shape for one pipeline, used by demo session state and by future service-backed loaders.
-export interface PipelineConfig { id:string; name:string; isDefault:boolean; stages:{ id:string; name:string; type:StageType }[]; fields:{ id:string; key:string; label:string; type:CustomFieldType; options?:string[] }[]; }
+export interface CustomFieldConfig { id:string; key:string; label:string; type:CustomFieldType; options?:string[]; required:boolean; }
+export interface PipelineStageConfig { id:string; name:string; type:StageType; requiredFieldIds:string[]; }
+export interface PipelineConfig { id:string; name:string; isDefault:boolean; stages:PipelineStageConfig[]; fields:CustomFieldConfig[]; }
 
 // --- Authentication and workspace contracts (shared by all feature modules) ---
 export type { PermissionKey } from './database';
