@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { FilterBuilder } from "@/components/leadguard/crm/filter-builder";
 import { useSavedFilters } from "@/components/leadguard/crm/filter-data";
+import { usePipelineManager } from "@/components/leadguard/crm/pipeline-data";
 import { matchesFilter } from "@/components/leadguard/crm/filter-rules";
 import { useOpportunityRecords } from "@/components/leadguard/crm/opportunity-data";
 import { DemoProvider } from "@/contexts/demo-context";
@@ -19,6 +20,15 @@ const created = (value: string, id = "c3"): FilterCondition => ({ id, kind: "dat
 const matches = (r: ReturnType<typeof setup>["result"], def: FilterDefinition) => r.current.records.rows.filter((o) => matchesFilter(def, o));
 
 describe("saved filters in demo mode", () => {
+  it('keeps a saved filter working across an actual pipeline rename',()=>{
+    const {result}=renderHook(()=>({filters:useSavedFilters(),manager:usePipelineManager(),records:useOpportunityRecords()}),{wrapper});
+    const pipeline=result.current.manager.pipelines.find(p=>p.id===SALES)!;const original=pipeline.stages.find(s=>s.name==='Proposal')!;
+    act(()=>{expect(result.current.filters.create('Stable stage',{pipelineId:SALES,conditions:[stage('Proposal')]}).ok).toBe(true);});
+    const before=result.current.records.rows.filter(r=>matchesFilter(result.current.filters.filters[0]!,r)).map(r=>r.id);
+    expect(before.length).toBeGreaterThan(0);
+    act(()=>{expect(result.current.manager.renameStage(SALES,original.id,'Renamed proposal').ok).toBe(true);});
+    const after=result.current.records.rows.filter(r=>matchesFilter(result.current.filters.filters[0]!,r));expect(after.map(r=>r.id)).toEqual(before);expect(after.every(r=>r.stage==='Renamed proposal')).toBe(true);
+  });
   it("applies three simultaneous filters to the sample opportunities", () => {
     const { result } = setup();
     const target = result.current.records.rows.find((o) => o.pipelineId === SALES)!;
@@ -38,7 +48,7 @@ describe("saved filters in demo mode", () => {
 
     act(() => { expect(result.current.filters.update(id, "Proposal deals", { pipelineId: SALES, conditions: [stage("Proposal")] }).ok).toBe(true); });
     expect(result.current.filters.filters[0]).toMatchObject({ id, name: "Proposal deals", pipelineId: SALES });
-    expect(result.current.filters.filters[0]!.conditions).toEqual([stage("Proposal")]);
+    expect(result.current.filters.filters[0]!.conditions).toEqual([{...stage("Proposal"),stageIds:["stage-sales-3"]}]);
 
     act(() => { expect(result.current.filters.remove(id).ok).toBe(true); });
     expect(result.current.filters.filters).toEqual([]);

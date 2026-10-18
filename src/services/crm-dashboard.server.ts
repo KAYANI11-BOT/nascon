@@ -38,6 +38,7 @@ export function groupPipeline(
   pipelines: { id: string; name: string }[],
 ): StageTotal[] {
   const groups = new Map<string, StageTotal>();
+  const minorUnits = new Map<string, bigint>();
   for (const row of rows) {
     const stage = stages.find((s) => s.id === row.stage_id);
     const key = `${row.stage_id}:${row.currency}`;
@@ -49,7 +50,15 @@ export function groupPipeline(
       amount: 0,
       count: 0,
     };
-    group.amount = Math.round((group.amount + Number(row.amount)) * 100) / 100;
+    // CRM amounts are numeric(14,2). Add integer minor units, never binary fractions.
+    const decimal = /^(\d+)(?:\.(\d{1,2}))?$/.exec(String(row.amount));
+    if (!decimal) throw new Error("Invalid monetary amount returned by the database.");
+    const cents = BigInt(decimal[1]!) * 100n + BigInt((decimal[2] ?? "").padEnd(2, "0"));
+    const total = (minorUnits.get(key) ?? 0n) + cents;
+    if (total > BigInt(Number.MAX_SAFE_INTEGER))
+      throw new Error("An exact database aggregate is required for this value.");
+    minorUnits.set(key, total);
+    group.amount = Number(total) / 100;
     group.count++;
     groups.set(key, group);
   }

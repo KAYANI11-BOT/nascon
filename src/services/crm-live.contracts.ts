@@ -135,6 +135,13 @@ export interface LivePage {
   rows: LiveRow[];
   total: number;
 }
+export interface CrmActivityEntry {
+  id: number;
+  actorId: string | null;
+  actorName: string;
+  action: string;
+  createdAt: string;
+}
 export interface CrmReferences {
   companies: Pick<CompanyRow, "id" | "name">[];
   contacts: Pick<ContactRow, "id" | "full_name" | "company_id">[];

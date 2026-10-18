@@ -1,6 +1,5 @@
+import { LiveCrmActivity } from "./live-activity";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getContactActivity } from "@/services/crm-live.functions";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { PageHeading, Panel, EmptyState } from "../shared";
@@ -21,16 +20,6 @@ export function LiveContactDetail({ id }: { id: string }) {
     pageSize: 20,
   });
   const companyQuery = useLiveRecord("companies", q.data?.company_id ?? "");
-  const [activityPage, setActivityPage] = useState(1);
-  const activity = useQuery({
-    queryKey: ["crm", mode.workspaceId, mode.scope, "activity", id, activityPage],
-    enabled: mode.ready && mode.auth.can("audit.view"),
-    queryFn: () =>
-      getContactActivity({
-        data: { workspaceId: mode.workspaceId!, contactId: id, page: activityPage },
-      }),
-    refetchInterval: 30_000,
-  });
   if (!mode.ready) return <LiveUnavailable />;
   if (q.isLoading) return <p role="status">Loading contact…</p>;
   if (q.error) return <QueryError error={q.error} retry={() => void q.refetch()} />;
@@ -121,41 +110,7 @@ export function LiveContactDetail({ id }: { id: string }) {
         )}
       </Panel>
       {companyQuery.error && <QueryError error={companyQuery.error} />}
-      <Panel
-        title="Activity timeline"
-        description="Persisted contact audit events; related-module history is not inferred"
-      >
-        {!mode.auth.can("audit.view") ? (
-          <p className="p-5">Audit viewing permission required.</p>
-        ) : activity.isLoading ? (
-          <p>Loading activity…</p>
-        ) : activity.error ? (
-          <QueryError error={activity.error} />
-        ) : (
-          <>
-            <ul className="p-5">
-              {activity.data?.rows.map((a) => (
-                <li key={a.id}>
-                  {a.action} · {a.created_at} ·{" "}
-                  {refs.data?.members.find((m) => m.id === a.actor_id)?.name ?? "System or member"}
-                </li>
-              ))}
-              {activity.data?.total === 0 && <li>No recorded contact activity.</li>}
-            </ul>
-            <div className="p-4 flex gap-3">
-              <Button disabled={activityPage <= 1} onClick={() => setActivityPage((v) => v - 1)}>
-                Previous activity
-              </Button>
-              <Button
-                disabled={activityPage * 20 >= (activity.data?.total ?? 0)}
-                onClick={() => setActivityPage((v) => v + 1)}
-              >
-                Next activity
-              </Button>
-            </div>
-          </>
-        )}
-      </Panel>
+      <LiveCrmActivity key={`${mode.workspaceId}:${id}`} entity="contacts" id={id} />
       {["Conversations", "Payments", "Appointments", "Notes"].map((title) => (
         <Panel key={title} title={title} description="Unavailable">
           <p className="p-5">

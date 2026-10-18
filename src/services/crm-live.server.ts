@@ -12,6 +12,7 @@ import {
   type LiveListInput,
   type LivePage,
   type LiveRow,
+  type CrmActivityEntry,
 } from "./crm-live.contracts";
 
 export interface CrmSession {
@@ -35,10 +36,63 @@ export function dbError(error: { code?: string } | null) {
       ? "Permission denied."
       : error.code === "23503"
         ? "A related record is missing or still in use."
-        : error.code === "23505"
-          ? "This record conflicts with another change. Refresh and retry."
-          : "CRM database operation failed. Check configuration and schema readiness.",
+        : error.code === "PGRST116"
+          ? "The record changed or is no longer available. Refresh and try again."
+          : error.code === "23505"
+            ? "This record conflicts with another change. Refresh and retry."
+            : "CRM database operation failed. Check configuration and schema readiness.",
   );
+}
+/** Reads the existing audit infrastructure only. Raw snapshots never cross this boundary. */
+export async function readCrmActivity(
+  session: CrmSession,
+  entity: "contacts" | "opportunities",
+  id: string,
+  page = 1,
+  expectedWorkspace?: string,
+): Promise<{ rows: CrmActivityEntry[]; total: number }> {
+  const { workspaceId } = assertCrmIdentity(session.auth, expectedWorkspace);
+  if (!session.auth.permissions.includes("audit.view"))
+    throw new Error("Activity requires audit viewing permission.");
+  await getCrm(session, entity, id, workspaceId);
+  const result = await session.db
+    .from("audit_logs")
+    .select("id,actor_id,action,created_at", { count: "exact" })
+    .eq("workspace_id", workspaceId)
+    .eq("table_name", entity)
+    .eq("record_id", id)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range((page - 1) * 20, page * 20 - 1);
+  dbError(result.error);
+  const rows = (result.data ?? []) as {
+    id: number;
+    actor_id: string | null;
+    action: string;
+    created_at: string;
+  }[];
+  const ids = [...new Set(rows.flatMap((r) => (r.actor_id ? [r.actor_id] : [])))];
+  const names = new Map<string, string>();
+  if (ids.length) {
+    // profiles has no workspace_id; the verified audit actor IDs and profile RLS constrain the lookup.
+    const profiles = await session.db.from("profiles").select("id,full_name").in("id", ids);
+    // Profile visibility can legitimately be lost after a member leaves; retain their ID instead.
+    if (!profiles.error)
+      for (const p of profiles.data ?? [])
+        names.set(String(p["id"]), String(p["full_name"] || "Member"));
+  }
+  return {
+    rows: rows.map((r) => ({
+      id: r.id,
+      actorId: r.actor_id,
+      actorName: r.actor_id
+        ? (names.get(r.actor_id) ?? `Member ${r.actor_id}`)
+        : "System or removed account",
+      action: r.action,
+      createdAt: r.created_at,
+    })),
+    total: result.count ?? 0,
+  };
 }
 export async function listCrm(session: CrmSession, input: LiveListInput): Promise<LivePage> {
   const v = listSchema.parse(input);
@@ -134,6 +188,7 @@ export async function mutateCrm(
   id: string | undefined,
   input: unknown,
   expectedWorkspace?: string,
+  expectedUpdatedAt?: string,
 ) {
   const { db, auth } = session;
   const { workspaceId, userId } = assertCrmIdentity(auth, expectedWorkspace);
@@ -182,37 +237,23 @@ export async function mutateCrm(
   }
   const columns =
     crmColumns[entity] + (entity === "opportunities" && canReadMoney(auth) ? ",amount" : "");
-  const result =
+  let write =
     action === "create"
-      ? await db
-          .from(entity)
-          .insert({
-            ...values,
-            workspace_id: workspaceId,
-            ...(["contacts", "companies", "opportunities"].includes(entity)
-              ? { created_by: userId }
-              : {}),
-          })
-          .select(columns)
-          .single()
+      ? db.from(entity).insert({
+          ...values,
+          workspace_id: workspaceId,
+          ...(["contacts", "companies", "opportunities"].includes(entity)
+            ? { created_by: userId }
+            : {}),
+        })
       : action === "update"
-        ? await db
-            .from(entity)
-            .update(values)
-            .eq("workspace_id", workspaceId)
-            .eq("id", id)
-            .select(columns)
-            .single()
-        : await db
-            .from(entity)
-            .delete()
-            .eq("workspace_id", workspaceId)
-            .eq("id", id)
-            .select("id")
-            .single();
+        ? db.from(entity).update(values).eq("workspace_id", workspaceId).eq("id", id)
+        : db.from(entity).delete().eq("workspace_id", workspaceId).eq("id", id);
+  if (action !== "create" && expectedUpdatedAt) write = write.eq("updated_at", expectedUpdatedAt);
+  const result = await write.select(action === "delete" ? "id" : columns).single();
   dbError(result.error);
   if (!result.data) throw new Error("The database did not confirm this change.");
   if (action === "delete") return null;
-  const row = result.data as LiveRow;
+  const row = result.data as unknown as LiveRow;
   return entity === "opportunities" ? redactMoney([row], canReadMoney(auth))[0]! : row;
 }

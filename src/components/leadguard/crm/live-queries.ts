@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/auth-context";
 import { getSupabaseConfiguration } from "@/lib/supabase";
 import {
@@ -45,7 +45,14 @@ export function useCrmReferences() {
     enabled: mode.ready && !mode.demo,
     queryFn: () => getCrmReferences({ data: { workspaceId: mode.workspaceId! } }),
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
+}
+export async function refreshCrmWorkspace(qc: QueryClient, workspaceId: string) {
+  await Promise.all([
+    qc.invalidateQueries({ queryKey: ["crm", workspaceId] }),
+    qc.invalidateQueries({ queryKey: ["crm-dashboard", workspaceId] }),
+  ]);
 }
 export function useCrmMutation() {
   const mode = useCrmMode();
@@ -56,12 +63,22 @@ export function useCrmMutation() {
       action: "create" | "update" | "delete";
       id?: string;
       values?: unknown;
+      expectedUpdatedAt?: string;
     }) => mutateLiveCrm({ data: { ...data, workspaceId: mode.workspaceId! } }),
-    onSuccess: async () => {
+    onMutate: async () => {
+      if (!mode.ready || mode.demo || !mode.workspaceId)
+        throw new Error("A verified workspace is required.");
+      const workspaceId = mode.workspaceId;
       await Promise.all([
-        qc.invalidateQueries({ queryKey: ["crm", mode.workspaceId] }),
-        qc.invalidateQueries({ queryKey: ["crm-dashboard", mode.workspaceId] }),
+        qc.cancelQueries({ queryKey: ["crm", workspaceId] }),
+        qc.cancelQueries({ queryKey: ["crm-dashboard", workspaceId] }),
       ]);
+      return { workspaceId };
+    },
+    // A lost HTTP response can follow a successful database write. Refetch on errors too.
+    // Use the mutation's original scope, even if the active workspace has since changed.
+    onSettled: async (_data, _error, _variables, context) => {
+      if (context?.workspaceId) await refreshCrmWorkspace(qc, context.workspaceId);
     },
   });
 }
