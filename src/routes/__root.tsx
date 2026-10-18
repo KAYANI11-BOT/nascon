@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  redirect,
   useRouter,
   HeadContent,
   Scripts,
@@ -13,6 +14,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { DemoProvider } from "@/contexts/demo-context";
+import { AuthProvider, authContextQuery } from "@/contexts/auth-context";
+import { resolveAuthRedirect } from "@/lib/auth-guard";
 import { AppShell } from "@/components/leadguard/shell";
 
 function NotFoundComponent() {
@@ -76,6 +79,16 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Runs on the server for the first request and on the client for navigations. UI redirects
+  // only; RLS and server functions enforce access to data.
+  beforeLoad: async ({ context, location }) => {
+    const auth = await context.queryClient.fetchQuery(authContextQuery());
+    const target = resolveAuthRedirect(auth, location.pathname, location.href);
+    if (target) {
+      throw redirect({ href: target.search ? `${target.to}?${new URLSearchParams(target.search)}` : target.to });
+    }
+    return { auth };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -119,12 +132,14 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient, auth } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <DemoProvider><AppShell><Outlet /></AppShell></DemoProvider>
+      <AuthProvider initial={auth}>
+        <DemoProvider><AppShell><Outlet /></AppShell></DemoProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
