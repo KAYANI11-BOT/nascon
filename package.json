@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "node supabase/tests/rls-local.mjs"
+    "test:db": "node supabase/tests/rls-local.mjs",
+    "test:remote": "node --env-file=.env.local --env-file=.env.test.local supabase/tests/verify-remote.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
