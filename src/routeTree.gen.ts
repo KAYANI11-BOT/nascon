@@ -32,6 +32,7 @@ import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TeamRouteImport } from './routes/team'
+import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as ContactsIdRouteImport } from './routes/contacts.$id'
 import { Route as LeadsIdRouteImport } from './routes/leads.$id'
 
@@ -150,6 +151,11 @@ const TeamRoute = TeamRouteImport.update({
   path: '/team',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/auth/confirm',
+  path: '/auth/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactsIdRoute = ContactsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/contacts/$id': typeof ContactsIdRoute
   '/leads/$id': typeof LeadsIdRoute
 }
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/contacts/$id': typeof ContactsIdRoute
   '/leads/$id': typeof LeadsIdRoute
 }
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/contacts/$id': typeof ContactsIdRoute
   '/leads/$id': typeof LeadsIdRoute
 }
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/team'
+    | '/auth/confirm'
     | '/contacts/$id'
     | '/leads/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/team'
+    | '/auth/confirm'
     | '/contacts/$id'
     | '/leads/$id'
   id:
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/team'
+    | '/auth/confirm'
     | '/contacts/$id'
     | '/leads/$id'
   fileRoutesById: FileRoutesById
@@ -351,6 +363,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   TeamRoute: typeof TeamRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -516,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/auth/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contacts/$id': {
       id: '/contacts/$id'
       path: '/$id'
@@ -579,6 +599,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   TeamRoute: TeamRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
