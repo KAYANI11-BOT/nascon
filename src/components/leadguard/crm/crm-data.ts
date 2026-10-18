@@ -1,6 +1,6 @@
 import {useDemo} from '@/contexts/demo-context';
 import {demoAppointments,demoAudit,demoMessages,demoPayments} from '@/data/demo';
-import type {Company,Contact,CrmCreateInput,RecordItem,TeamMember} from '@/types/domain';
+import type {CompanyInput,ContactInput,RecordItem,TeamMember} from '@/types/domain';
 export type CrmKind='contacts'|'companies';
 export const crmCopy={contacts:{title:'Contacts',singular:'contact',subtitle:'The people behind your business relationships.',namePlaceholder:'Full name'},companies:{title:'Companies',singular:'company',subtitle:'A connected view of the companies you work with.',namePlaceholder:'Company name'}} as const;
 export interface CrmFormValues {name:string;email:string;company:string;owner:string;status:string;source:string;}
@@ -19,5 +19,6 @@ const noRelations:ContactRelations={opportunities:[],conversations:[],payments:[
 export function useContactDetail(id:string){const{mode,rows,team,save}=useCrmRecords('contacts');const{entities}=useDemo();const contact=rows.find(r=>r.id===id);const company=contact?entities.companies.find(c=>c.name===contact.company):undefined;const relations:ContactRelations=mode==='demo'&&contact?{opportunities:entities.opportunities.filter(r=>r.company===contact.company),conversations:demoMessages.filter(m=>m.name===contact.name),payments:demoPayments.filter(p=>p.name===contact.company),appointments:demoAppointments.filter(a=>a.contact===contact.name),activity:demoAudit.filter(a=>a.target===contact.name)}:noRelations;return {mode,contact,company,relations,team,save};}
 export function toDemoRecord(values:CrmFormValues,record?:RecordItem):RecordItem{return {id:record?.id??`demo-${crypto.randomUUID()}`,name:values.name.trim(),email:values.email,company:values.company,owner:values.owner,status:values.status,source:values.source,value:record?.value??0,stage:record?.stage??'Discovery',created:record?.created??'2026-10-18',acknowledged:record?.acknowledged??false,...(record?.deadline?{deadline:record.deadline}:{})};}
 // Typed mappers for the future service calls; company and owner ids must be resolved from workspace records first.
-export function toContactInput(values:CrmFormValues,refs:{companyId:string|null;ownerId:string|null}):CrmCreateInput<Contact>{return {name:values.name.trim(),email:values.email||null,phone:null,company_id:refs.companyId,status:values.status,source:values.source||null,owner_id:refs.ownerId};}
-export function toCompanyInput(values:CrmFormValues,refs:{ownerId:string|null}):CrmCreateInput<Company>{return {name:values.name.trim(),email:values.email||null,phone:null,website:null,industry:null,status:values.status,owner_id:refs.ownerId};}
+// Form status/source (contacts) and email/status (companies) are demo-only: crm_core.sql has no columns for them.
+export function toContactInput(values:CrmFormValues,refs:{companyId:string|null;ownerId:string|null}):ContactInput{return {full_name:values.name.trim(),email:values.email||null,phone:null,title:null,company_id:refs.companyId,owner_id:refs.ownerId};}
+export function toCompanyInput(values:CrmFormValues,refs:{ownerId:string|null}):CompanyInput{return {name:values.name.trim(),domain:null,industry:null,phone:null,owner_id:refs.ownerId};}
