@@ -172,10 +172,21 @@ export interface RecoveryFilters {
   pageSize: number;
 }
 
+/** A recorded action (note, call, ...). The first one by the current owner acknowledges the lead. */
+export interface LeadAction {
+  id: string;
+  leadId: string;
+  action: QualifyingAction;
+  actorId: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface LeadDetail {
   lead: Lead;
   assignments: AssignmentHistoryEntry[];
   escalations: EscalationEvent[];
+  actions: LeadAction[];
 }
 
 export interface LeadService {
@@ -183,7 +194,7 @@ export interface LeadService {
   getLead(workspaceId: string, leadId: string): Promise<ServiceResult<LeadDetail>>;
   createManual(workspaceId: string, input: {name: string; email?: string; phone?: string; company?: string; message?: string; idempotencyKey: string}): Promise<ServiceResult<Lead>>;
   acknowledge(leadId: string, assignmentId: string): Promise<ServiceResult<{code: 'ok' | 'already_applied'}>>;
-  recordAction(leadId: string, action: QualifyingAction, dedupeKey: string): Promise<ServiceResult<{acknowledged: boolean}>>;
+  recordAction(leadId: string, action: QualifyingAction, dedupeKey: string, note?: string): Promise<ServiceResult<{acknowledged: boolean}>>;
   reassign(leadId: string, toUserId: string, expectedVersion: number, reason?: string): Promise<ServiceResult<{code: string}>>;
   recoveryQueue(workspaceId: string, filters: RecoveryFilters): Promise<ServiceResult<Page<RecoveryItem>>>;
   resolveRecovery(leadId: string): Promise<ServiceResult<null>>;

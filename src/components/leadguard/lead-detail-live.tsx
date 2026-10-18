@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {useRef, useState, type ReactNode} from 'react';
 import {Link} from '@tanstack/react-router';
 import {ArrowLeft, CheckCircle2, CircleAlert, Clock, Plus, ArrowUpRight} from 'lucide-react';
 import {Button} from '@/components/ui/button';
@@ -6,7 +6,14 @@ import {firstResponseSeconds} from '@/lib/lead-engine';
 import {AcknowledgementCountdown} from './acknowledgement-countdown';
 import {Avatar, EmptyState, ErrorState, LoadingState, PageHeading, Panel, Status} from './shared';
 import {ackText, fmtDuration, fmtUtc, reasonText, sourceLabel} from './lead-format';
-import {useAcknowledge, useLeadDetail, useLeadRealtime, useLiveWorkspace, useNames, useReassign, useTeam} from './lead-queries';
+import {useAcknowledge, useLeadDetail, useLeadRealtime, useLiveWorkspace, useNames, useReassign, useRecordAction, useTeam} from './lead-queries';
+import type {QualifyingAction} from '@/types/leads';
+
+const ACTION_LABELS: Record<QualifyingAction, string> = {
+  note_added: 'Note added', call_recorded: 'Call recorded', message_sent: 'Message sent', stage_changed: 'Stage changed', appointment_scheduled: 'Appointment scheduled',
+};
+// Manual producers offered on this page. Messages, stage changes and appointments are recorded by their own modules.
+const MANUAL_ACTIONS: QualifyingAction[] = ['note_added', 'call_recorded'];
 
 export function LeadDetailRoute({id, fallback}: {id: string; fallback: ReactNode}) {
   const {live} = useLiveWorkspace();
@@ -21,6 +28,11 @@ function LiveLeadDetail({id}: {id: string}) {
   const detail = useLeadDetail(workspaceId, id);
   const ack = useAcknowledge(workspaceId);
   const reassign = useReassign(workspaceId);
+  const record = useRecordAction(workspaceId);
+  // One key per form submission: a double click or retry reuses it, so the action is recorded once.
+  const actionKey = useRef(crypto.randomUUID());
+  const [actionType, setActionType] = useState<QualifyingAction>('note_added');
+  const [actionNote, setActionNote] = useState('');
   const [target, setTarget] = useState('');
   const [message, setMessage] = useState<{kind: 'ok' | 'error'; text: string} | null>(null);
 
@@ -30,7 +42,7 @@ function LiveLeadDetail({id}: {id: string}) {
       ? <EmptyState title="Lead not found" description="It may have been deleted, or it belongs to another workspace." />
       : <ErrorState message={detail.error.message} onRetry={() => { void detail.refetch(); }} />;
   }
-  const {lead, assignments, escalations} = detail.data;
+  const {lead, assignments, escalations, actions} = detail.data;
   const isOwner = lead.assignedTo !== null && lead.assignedTo === userId;
   const canAcknowledge = lead.assignedTo !== null && lead.currentAssignmentId !== null && lead.acknowledgedAt === null && (isOwner || can('leads.assign'));
   const response = firstResponseSeconds(lead);
@@ -43,6 +55,19 @@ function LiveLeadDetail({id}: {id: string}) {
       setMessage({kind: 'ok', text: r.code === 'already_applied' ? 'This assignment was already acknowledged.' : 'Acknowledged. The deadline no longer applies.'});
     } catch (e) {
       setMessage({kind: 'error', text: e instanceof Error ? e.message : 'Could not acknowledge.'});
+    }
+  }
+  async function onRecord() {
+    if (record.isPending) return;
+    if (actionType === 'note_added' && actionNote.trim().length === 0) { setMessage({kind: 'error', text: 'Write a note before saving it.'}); return; }
+    setMessage(null);
+    try {
+      const r = await record.mutateAsync({leadId: lead.id, action: actionType, dedupeKey: actionKey.current, ...(actionNote.trim() ? {note: actionNote.trim()} : {})});
+      actionKey.current = crypto.randomUUID();
+      setActionNote('');
+      setMessage({kind: 'ok', text: r.acknowledged ? 'Activity recorded. As the owner, this acknowledged the lead.' : 'Activity recorded.'});
+    } catch (e) {
+      setMessage({kind: 'error', text: e instanceof Error ? e.message : 'The activity could not be recorded.'});
     }
   }
   async function onReassign() {
@@ -95,6 +120,30 @@ function LiveLeadDetail({id}: {id: string}) {
           </dl>
         </Panel>
       </div>
+
+      <Panel title="Activity" description="Recorded actions count as a response: when the current owner logs one, the lead is acknowledged.">
+        <div className="space-y-3 p-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <select aria-label="Activity type" value={actionType} onChange={(e) => setActionType(e.target.value as QualifyingAction)}>
+              {MANUAL_ACTIONS.map((a) => <option key={a} value={a}>{ACTION_LABELS[a]}</option>)}
+            </select>
+          </div>
+          <textarea aria-label="Activity note" rows={3} maxLength={2000} className="w-full" placeholder={actionType === 'note_added' ? 'Write a note…' : 'Optional details of the call…'} value={actionNote} onChange={(e) => setActionNote(e.target.value)} />
+          <Button variant="outline" disabled={record.isPending} onClick={() => { void onRecord(); }}>{record.isPending ? 'Saving…' : 'Save activity'}</Button>
+        </div>
+        {actions.length > 0 && (
+          <div className="timeline">
+            {actions.map((a) => (
+              <div key={a.id}>
+                <span><CheckCircle2 size={15} /></span>
+                <h3>{ACTION_LABELS[a.action]}{a.actorId ? ` by ${names(a.actorId)}` : ''}</h3>
+                {a.note && <p className="whitespace-pre-wrap">{a.note}</p>}
+                <small>{fmtUtc(a.createdAt)}</small>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
 
       {can('leads.assign') && (
         <Panel title="Reassign" description="Manual reassignment is recorded separately from automatic escalation.">
